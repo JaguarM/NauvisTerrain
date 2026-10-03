@@ -102,13 +102,33 @@ The world
 - The chunk generator runs Minecraft's biome decoration after its own pass, so a feature that a
   biome modifier adds lands here as anywhere in the overworld: vanilla's ores, a pack's oil or
   water.
+- Trees, rocks and decoratives are features in the biome's vegetation step, one placed feature
+  per Factorio prototype under its Factorio name (`nauvis_terrain:tree_08_brown`), each placed by
+  `nauvis_terrain:autoplace` exactly where `Terrain` puts that prototype: decals first, then plants,
+  rocks and trees, so a tree replaces a plant and never the reverse.
+- A tree is a vanilla `minecraft:tree` feature of vanilla logs and leaves, Factorio-sized:
+  spruce-like for the conifers (`tree-01`, `tree-02`), oak-like for the broadleaves, its leaves the
+  vanilla leaves nearest its colour (cherry for the red ones, dark oak and pale oak for the brown);
+  the five dead and dry trees are bare trunks, a forked desert tree and a fallen log. Mods that act
+  on vanilla trees (Dynamic Trees, thinner logs) act on these.
+- A rock is a mound of stone over the tiles its collision box covers (`nauvis_terrain:boulder`),
+  stone and coal ore half and half in the huge rock, as its yield is; the big sand rock is
+  sandstone. A plant decorative is the nearest vanilla plant (short and tall grass, fern, bush,
+  dry grass, dead bush) and a small rock a stone button. A decal is vanilla's disk feature
+  repainting the ground with the tile nearest it, as wide as the decal's shorter side.
+- Fish are the biome's cod, spawning in water as vanilla's do.
 
 What a pack changes
 -------------------
 
 Everything through data, nothing through code (CLAUDE.md, rule 4):
 
-- The block for each Factorio name, tile, tree, rock, decorative or ore, is in the world preset's
-  generator settings. A pack overrides the preset to use its own blocks.
-- What a tree or rock drops is its loot table.
+- The block for each Factorio tile and ore, the cliff's block and step, and the lowest terrace's
+  height are in the world preset's generator settings. A pack overrides the preset to use its
+  own.
+- What stands for a tree, rock or decorative is its configured feature,
+  `nauvis_terrain:<factorio name>`; a pack overrides the JSON, or replaces the placed feature to
+  keep Factorio's placement for a feature of its own.
+- What a block drops is its loot table; trees, rocks and plants are vanilla blocks with vanilla
+  loot.
 - The biome takes biome modifiers like any overworld biome.

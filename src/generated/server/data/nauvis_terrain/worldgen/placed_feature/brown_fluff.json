@@ -1,0 +1,9 @@
+{
+  "feature": "nauvis_terrain:brown_fluff",
+  "placement": [
+    {
+      "type": "nauvis_terrain:autoplace",
+      "entity": "brown-fluff"
+    }
+  ]
+}

@@ -171,6 +171,9 @@ public final class TerrainData {
         }
     }
 
+    /** The tile blocks, which a decal paints over. */
+    public static final TagKey<Block> GROUND = TagKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath(NauvisTerrain.MOD_ID, "ground"));
+
     /** What breaks a cliff targets this tag: a pack's cliff explosives, say. */
     public static final TagKey<Block> CLIFFS = TagKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath(NauvisTerrain.MOD_ID, "cliffs"));
 
@@ -190,6 +193,8 @@ public final class TerrainData {
                 (name.startsWith("sand") || name.startsWith("red-desert") ? sand : dirt).add(block.getKey());
             });
             tag(CLIFFS).add(TerrainBlocks.CLIFF.getKey());
+            var ground = tag(GROUND);
+            TerrainBlocks.TILES.values().forEach(block -> ground.add(block.getKey()));
         }
     }
 
@@ -203,6 +208,7 @@ public final class TerrainData {
             files.put("nauvis_terrain/worldgen/world_preset/nauvis.json", preset());
             files.put("minecraft/tags/worldgen/biome/is_overworld.json", tag("nauvis_terrain:nauvis"));
             files.put("minecraft/tags/worldgen/world_preset/normal.json", tag("nauvis_terrain:nauvis"));
+            files.putAll(Autoplace.files());
             List<CompletableFuture<?>> saves = new ArrayList<>();
             files.forEach((path, json) -> saves.add(DataProvider.saveStable(cache, json, data.resolve(path))));
             return CompletableFuture.allOf(saves.toArray(CompletableFuture[]::new));
@@ -221,7 +227,10 @@ public final class TerrainData {
             return tag;
         }
 
-        /** Plains' climate and mobs, Factorio's water, no carvers and no surface features. */
+        /**
+         * Plains' climate and mobs, Factorio's water with cod where Factorio has fish, no carvers,
+         * and on the surface only Factorio's trees, rocks and decoratives.
+         */
         private static JsonObject biome() {
             Prototype water = Nauvis.program().prototypes.stream().filter(p -> p.name().equals("water")).findFirst().orElseThrow();
             JsonObject biome = new JsonObject();
@@ -241,6 +250,9 @@ public final class TerrainData {
                 }
                 if (step == 6) {
                     UNDERGROUND_ORES.forEach(ore -> inStep.add("minecraft:" + ore));
+                }
+                if (step == 9) {
+                    Autoplace.inOrder().forEach(p -> inStep.add(Autoplace.id(p)));
                 }
                 features.add(inStep);
             }
@@ -263,7 +275,7 @@ public final class TerrainData {
                     {"zombie_villager", 1, 1, 5}, {"zombie_horse", 1, 1, 5}, {"skeleton", 4, 4, 100}, {"creeper", 4, 4, 100},
                     {"slime", 4, 4, 100}, {"enderman", 1, 4, 10}, {"witch", 1, 1, 5}}));
             spawners.add("underground_water_creature", spawns(new Object[][]{{"glow_squid", 4, 6, 10}}));
-            spawners.add("water_ambient", new JsonArray());
+            spawners.add("water_ambient", spawns(new Object[][]{{"cod", 3, 6, 15}}));
             spawners.add("water_creature", new JsonArray());
             return spawners;
         }

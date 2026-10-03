@@ -1,0 +1,9 @@
+{
+  "feature": "nauvis_terrain:garballo_mini_dry",
+  "placement": [
+    {
+      "type": "nauvis_terrain:autoplace",
+      "entity": "garballo-mini-dry"
+    }
+  ]
+}

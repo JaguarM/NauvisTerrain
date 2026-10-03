@@ -1,0 +1,9 @@
+{
+  "feature": "nauvis_terrain:medium_sand_rock",
+  "placement": [
+    {
+      "type": "nauvis_terrain:autoplace",
+      "entity": "medium-sand-rock"
+    }
+  ]
+}

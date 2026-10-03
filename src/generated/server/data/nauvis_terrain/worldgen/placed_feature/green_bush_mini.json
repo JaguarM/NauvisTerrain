@@ -1,0 +1,9 @@
+{
+  "feature": "nauvis_terrain:green_bush_mini",
+  "placement": [
+    {
+      "type": "nauvis_terrain:autoplace",
+      "entity": "green-bush-mini"
+    }
+  ]
+}

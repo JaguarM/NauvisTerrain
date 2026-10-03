@@ -84,6 +84,11 @@ public final class NauvisGenerator extends ChunkGenerator {
         return ground().top(x, z);
     }
 
+    /** Where Factorio places a tree, rock or decorative in a chunk: on top of each tile it stands on. */
+    public List<BlockPos> placed(String name, ChunkPos chunk) {
+        return ground().placed(name, chunk);
+    }
+
     @Override
     protected MapCodec<? extends ChunkGenerator> codec() {
         return CODEC;

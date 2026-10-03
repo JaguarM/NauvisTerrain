@@ -21,6 +21,10 @@ Each a decision. If something looks broken, look here before treating it as a bu
 - An ore's richness is not kept: a patch is one block deep and every block is one vanilla ore.
   A pack's CrumblingOre makes an ore last, and its distance rule is Factorio's richness rule.
 - No biter spawners and no worms.
+- Trees, plants and small rocks are vanilla's nearest, not Factorio's own: a leaf colour, a plant
+  shape, a stone button for a pebble. Decals are round. *Kept.*
+- Fish are cod that spawn in water, not one fish on a hundredth of the water tiles.
+- A tree, rock or plant yields what its vanilla blocks yield, not Factorio's wood and stone counts.
 - Under the ground is Minecraft's: stone, deepslate, bedrock and vanilla's ores other than iron,
   copper and coal. Factorio has no underground. No caves. *Kept.*
 - One starting position, at 0,0.

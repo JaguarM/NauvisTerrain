@@ -1,0 +1,14 @@
+{
+  "type": "nauvis_terrain:boulder",
+  "config": {
+    "blocks": {
+      "type": "minecraft:simple_state_provider",
+      "state": {
+        "Name": "minecraft:stone"
+      }
+    },
+    "height": 2,
+    "length": 2,
+    "width": 2
+  }
+}

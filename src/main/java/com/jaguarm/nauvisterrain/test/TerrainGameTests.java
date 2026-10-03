@@ -12,6 +12,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.state.BlockState;
@@ -23,6 +24,8 @@ import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.blending.Blender;
 import net.minecraft.world.level.levelgen.presets.WorldPreset;
 import net.neoforged.bus.api.IEventBus;
+
+import java.util.List;
 
 /** The world type's gametests. */
 public final class TerrainGameTests {
@@ -91,6 +94,38 @@ public final class TerrainGameTests {
             }
             helper.fail("no cliff face in 3700 columns east of the start");
         });
+        tests.add("trees_stand_where_factorio_puts_them", 400, helper -> {
+            ServerLevel level = helper.getLevel();
+            if (!(level.getChunkSource().getGenerator() instanceof NauvisGenerator generator)) {
+                throw helper.assertionException("the gametest world is not Nauvis");
+            }
+            List<String> trees = Nauvis.program().prototypes.stream().filter(p -> p.type().equals("tree"))
+                    .map(p -> p.name()).toList();
+            ChunkPos forest = null;
+            int most = 0;
+            for (int cx = -24; cx <= 24; cx += 3) {
+                for (int cz = -24; cz <= 24; cz += 3) {
+                    ChunkPos pos = new ChunkPos(cx, cz);
+                    int count = trees.stream().mapToInt(t -> generator.placed(t, pos).size()).sum();
+                    if (count > most) {
+                        most = count;
+                        forest = pos;
+                    }
+                }
+            }
+            helper.assertTrue(forest != null && most >= 10, "no forest within 24 chunks of the start");
+            level.getChunk(forest.x(), forest.z());
+            int standing = 0;
+            for (String tree : trees) {
+                for (BlockPos at : generator.placed(tree, forest)) {
+                    if (level.getBlockState(at).is(BlockTags.LOGS)) {
+                        standing++;
+                    }
+                }
+            }
+            helper.assertTrue(standing >= most * 3 / 4, standing + " of " + most + " trees stand in " + forest);
+            helper.succeed();
+        });
         // The gametest server's world is Nauvis (build.gradle, gameTestPacks): full chunks, through features.
         tests.add("the_world_is_nauvis", 200, helper -> {
             ServerLevel level = helper.getLevel();
@@ -109,7 +144,6 @@ public final class TerrainGameTests {
                         BlockState state = level.getBlockState(pos);
                         helper.assertTrue(state == expected || generator.settings().resources().containsValue(state),
                                 "at " + pos + " the world has " + state + " where Nauvis has " + tile);
-                        helper.assertTrue(level.getBlockState(pos.above()).isAir(), "something stands on the ground at " + pos);
                     }
                 }
             }

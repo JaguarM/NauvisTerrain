@@ -1,0 +1,9 @@
+{
+  "feature": "nauvis_terrain:green_small_grass",
+  "placement": [
+    {
+      "type": "nauvis_terrain:autoplace",
+      "entity": "green-small-grass"
+    }
+  ]
+}

@@ -652,6 +652,7 @@ def build(raw: dict, terrain: dict, locale: dict, extra_roots: tuple[str, ...] =
             "collision_mask": collision_mask(raw, p["type"], proto),
             "map_color": colour(proto.get("map_color"), 255 if p["type"] == "resource" else 1),
             "effect_color": colour(proto.get("effect_color"), 1),
+            "decal": proto.get("render_layer") == "decals",
         })
 
     nodes, roots = compact(compiler.graph, roots)

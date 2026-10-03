@@ -1,0 +1,9 @@
+{
+  "feature": "nauvis_terrain:tree_01",
+  "placement": [
+    {
+      "type": "nauvis_terrain:autoplace",
+      "entity": "tree-01"
+    }
+  ]
+}

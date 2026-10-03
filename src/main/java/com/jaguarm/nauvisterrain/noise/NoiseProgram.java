@@ -64,11 +64,12 @@ public final class NoiseProgram {
     /**
      * A tile, entity or decorative the planet places, with its English name. A box is left, top,
      * right, bottom around the thing's centre; a colour is 0xRRGGBB, or -1 for none. A water
-     * tile's effect colour is the colour Factorio shades its surface with.
+     * tile's effect colour is the colour Factorio shades its surface with. A decal is a
+     * decorative Factorio draws into the ground.
      */
     public record Prototype(String kind, String type, String name, String title, String order, String control,
                             int placementDensity, boolean hasRichness, double[] collisionBox, Mask collisionMask,
-                            int mapColor, int effectColor) {
+                            int mapColor, int effectColor, boolean decal) {
         public String probabilityRoot() {
             return kind + ":" + name + ":probability";
         }
@@ -108,7 +109,7 @@ public final class NoiseProgram {
                     p.get("title").getAsString(), p.get("order").getAsString(), p.get("control").isJsonNull() ? null : p.get("control").getAsString(),
                     p.get("placement_density").getAsInt(), p.get("richness").getAsBoolean(),
                     box(p.get("collision_box")), mask(p.getAsJsonObject("collision_mask")), colour(p.get("map_color")),
-                    colour(p.get("effect_color"))));
+                    colour(p.get("effect_color")), p.get("decal").getAsBoolean()));
         }
         prototypes = List.copyOf(list);
         JsonObject c = json.getAsJsonObject("cliff");

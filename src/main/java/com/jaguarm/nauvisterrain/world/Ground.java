@@ -5,14 +5,19 @@ import com.jaguarm.nauvisterrain.noise.Hash;
 import com.jaguarm.nauvisterrain.noise.MapSettings;
 import com.jaguarm.nauvisterrain.noise.NoiseProgram.Prototype;
 import com.jaguarm.nauvisterrain.noise.Terrain;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.levelgen.Heightmap;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Nauvis's ground for one world seed (docs/ARCHITECTURE.md, the world). Land rises in terraces, a
@@ -35,6 +40,7 @@ final class Ground {
     /** In a gap, the last part of a level's span, as a share of the interval, over which land ramps up to the next. */
     private static final double RAMP = 0.1;
     private static final int[][] NEIGHBOURS = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+    private static final int PLACED_KEPT = 4096;
 
     final Terrain terrain;
     final long mapSeed;
@@ -48,6 +54,8 @@ final class Ground {
     private final BlockState[] floor;
     private final int[] depth;
     private final Map<String, BlockState> resources;
+    /** Each chunk's trees, rocks and decoratives by Factorio name, on the ground they stand on. */
+    private final Map<Long, Map<String, List<BlockPos>>> placed = new ConcurrentHashMap<>();
 
     Ground(NauvisSettings settings, long worldSeed) {
         this.mapSeed = worldSeed & 0xFFFFFFFFL;
@@ -137,6 +145,37 @@ final class Ground {
 
     Prototype tile(int x, int z) {
         return terrain.tiles.get(terrain.area(x, z, 1, 1).tileIndex(x, z));
+    }
+
+    /** Where Factorio places a tree, rock or decorative in a chunk: on top of each tile it stands on. */
+    List<BlockPos> placed(String name, ChunkPos chunk) {
+        Map<String, List<BlockPos>> all = placed.get(chunk.pack());
+        if (all == null) {
+            all = placements(chunk);
+            if (placed.size() >= PLACED_KEPT) {
+                placed.clear();
+            }
+            placed.put(chunk.pack(), all);
+        }
+        return all.getOrDefault(name, List.of());
+    }
+
+    private Map<String, List<BlockPos>> placements(ChunkPos chunk) {
+        Terrain.Area area = terrain.area(chunk.getMinBlockX(), chunk.getMinBlockZ(), 16, 16);
+        Map<String, List<BlockPos>> out = new HashMap<>();
+        List<Terrain.Placed> things = new ArrayList<>(area.entities());
+        things.addAll(area.decoratives());
+        for (Terrain.Placed p : things) {
+            if (p.prototype().type().equals("resource")) {
+                continue;
+            }
+            BlockPos pos = new BlockPos(p.x(), column(area, p.x(), p.y()).top + 1, p.y());
+            List<BlockPos> list = out.computeIfAbsent(p.prototype().name(), k -> new ArrayList<>());
+            if (!list.contains(pos)) {
+                list.add(pos);
+            }
+        }
+        return out;
     }
 
     /** The y of the top block at a column. */

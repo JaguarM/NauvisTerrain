@@ -1,0 +1,9 @@
+{
+  "feature": "nauvis_terrain:red_croton",
+  "placement": [
+    {
+      "type": "nauvis_terrain:autoplace",
+      "entity": "red-croton"
+    }
+  ]
+}
