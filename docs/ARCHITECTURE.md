@@ -34,8 +34,9 @@ The program runs over a batch of points at once: each node computes the whole ba
 next starts, and runs once per batch; what the map settings fix is computed once. A batch is a
 block of 32 by 32 tiles, Factorio's own size, and `Terrain` keeps the blocks it has made for the
 chunks that share them, so threads that make chunks side by side (Distant Horizons' among them)
-reuse each other's work. `spot_noise` runs its argument expressions over its own batch of
-candidate points. Numbers are `float`, as Factorio's are; a seed stays an exact integer.
+reuse each other's work. A noise octave over a batch looks each lattice corner's gradient up once
+when the batch spans few corners, as Nauvis's broad noise does. `spot_noise` runs its argument
+expressions over its own batch of candidate points. Numbers are `float`, as Factorio's are; a seed stays an exact integer.
 
 The noise package is plain Java (CLAUDE.md, rule 6). `./gradlew test` renders seed 123 to
 `build/nauvis-123-512.png`, each tile in its `map_color` from the dump, with each tile's share and

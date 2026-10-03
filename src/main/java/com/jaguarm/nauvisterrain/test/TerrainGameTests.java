@@ -10,6 +10,7 @@ import com.jaguarm.nauvisterrain.world.NauvisGenerator;
 import com.jaguarm.nauvisterrain.world.NauvisMap;
 import com.jaguarm.nauvisterrain.world.NauvisSettings;
 import com.google.gson.JsonElement;
+import com.mojang.logging.LogUtils;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
@@ -20,6 +21,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ProtoChunk;
 import net.minecraft.world.level.chunk.UpgradeData;
@@ -31,6 +33,7 @@ import net.minecraft.world.level.levelgen.presets.WorldPreset;
 import net.neoforged.bus.api.IEventBus;
 
 import java.util.List;
+import java.util.Locale;
 
 /** The world type's gametests. */
 public final class TerrainGameTests {
@@ -156,6 +159,24 @@ public final class TerrainGameTests {
                     helper.assertTrue(top == expected || loaded.settings().resources().containsValue(top),
                             "with the lakes preset the top at " + wx + "," + wz + " is " + top);
                 }
+            }
+            helper.succeed();
+        });
+        // Generates 20 by 20 full chunks here and in vanilla's Nether, asked for one at a time from
+        // the server thread, and logs how fast each went; a measure, not a limit.
+        tests.add("chunks_per_second", 2400, helper -> {
+            ServerLevel nauvis = helper.getLevel();
+            ServerLevel nether = nauvis.getServer().getLevel(Level.NETHER);
+            for (ServerLevel level : new ServerLevel[]{nauvis, nether}) {
+                long start = System.nanoTime();
+                for (int cx = 0; cx < 20; cx++) {
+                    for (int cz = 0; cz < 20; cz++) {
+                        level.getChunk(2000 + cx, -3000 + cz);
+                    }
+                }
+                double seconds = (System.nanoTime() - start) / 1e9;
+                LogUtils.getLogger().info("{}: 400 full chunks in {} s, {} chunks per second", level.dimension().identifier(),
+                        String.format(Locale.ROOT, "%.2f", seconds), String.format(Locale.ROOT, "%.0f", 400 / seconds));
             }
             helper.succeed();
         });

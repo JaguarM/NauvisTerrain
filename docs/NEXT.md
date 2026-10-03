@@ -16,19 +16,14 @@ noise program (`src/main/resources/nauvis_terrain/noise/nauvis.json`, 1494 nodes
 `noise` package runs it, calibrated against Factorio's own values until every tile's share, the
 climate, the ores and the trees match (`FACTORIO.md`, what the oracle measured), and the `world`
 package lays it out. `./gradlew test` renders seed 123 into `build/nauvis-123-512.png`;
-`./gradlew runGameTestServer` checks chunks of a real Nauvis world. A block of 32 by 32 tiles takes
-about 40 ms to evaluate.
+`./gradlew runGameTestServer` checks chunks of a real Nauvis world and measures it: about 80 full
+chunks a second asked for one at a time from the server thread, 99 over 2500, where vanilla's
+Nether in the same run makes 36. A block of 32 by 32 tiles evaluates in about 7 ms.
 
 The jobs
 --------
 
-### 1. Speed
-
-Chunks per second against a vanilla world, and a pregeneration of a few thousand chunks. Factorio
-evaluates 32 by 32 tiles at a time; batching four Minecraft chunks, or caching per region, are the
-levers.
-
-### 2. Project Nauvis
+### 1. Project Nauvis
 
 Once a world is playable, the pack takes the mod as an `includeBuild`. What already meets it there:
 

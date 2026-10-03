@@ -383,33 +383,28 @@ public final class Evaluator {
                 }
             }
             case BASIS_NOISE -> {
-                float[] x = v(a[0], values, n), y = v(a[1], values, n);
-                long s0 = seed(a[2]), s1 = seed(a[3]);
-                double in = u(a[4]), os = u(a[5]), ox = u(a[6]), oy = u(a[7]);
-                for (int i = 0; i < n; i++) out[i] = (float) BasisNoise.basis(s0, s1, x[i], y[i], in, os, ox, oy);
+                double[] sum = new double[n];
+                BasisNoise.octave(seed(a[2]), seed(a[3]), v(a[0], values, n), v(a[1], values, n), u(a[4]), u(a[6]), u(a[7]),
+                        0, 0, u(a[5]), null, sum);
+                narrow(sum, out);
             }
-            case MULTIOCTAVE_NOISE, VARIABLE_PERSISTENCE_MULTIOCTAVE_NOISE -> {
-                float[] x = v(a[0], values, n), y = v(a[1], values, n), p = v(a[2], values, n);
-                long s0 = seed(a[3]), s1 = seed(a[4]);
-                int octaves = (int) u(a[5]);
-                double in = u(a[6]), os = u(a[7]), ox = u(a[8]), oy = u(a[9]);
-                boolean variable = node.op() == Op.VARIABLE_PERSISTENCE_MULTIOCTAVE_NOISE;
-                for (int i = 0; i < n; i++) {
-                    out[i] = (float) (variable
-                            ? BasisNoise.variablePersistence(s0, s1, x[i], y[i], p[i], octaves, in, os, ox, oy)
-                            : BasisNoise.multioctave(s0, s1, x[i], y[i], p[i], octaves, in, os, ox, oy));
-                }
+            case MULTIOCTAVE_NOISE -> {
+                double[] sum = new double[n];
+                BasisNoise.multioctave(seed(a[3]), seed(a[4]), v(a[0], values, n), v(a[1], values, n), u(a[2]), (int) u(a[5]),
+                        u(a[6]), u(a[7]), u(a[8]), u(a[9]), sum);
+                narrow(sum, out);
+            }
+            case VARIABLE_PERSISTENCE_MULTIOCTAVE_NOISE -> {
+                double[] sum = new double[n];
+                BasisNoise.variablePersistence(seed(a[3]), seed(a[4]), v(a[0], values, n), v(a[1], values, n),
+                        v(a[2], values, n), (int) u(a[5]), u(a[6]), u(a[7]), u(a[8]), u(a[9]), sum);
+                narrow(sum, out);
             }
             case QUICK_MULTIOCTAVE_NOISE -> {
-                float[] x = v(a[0], values, n), y = v(a[1], values, n);
-                long s0 = seed(a[2]), s1 = seed(a[3]);
-                int octaves = (int) u(a[4]);
-                double in = u(a[5]), os = u(a[6]), ox = u(a[7]), oy = u(a[8]);
-                double im = u(a[9]), om = u(a[10]);
-                long shift = (long) u(a[11]);
-                for (int i = 0; i < n; i++) {
-                    out[i] = (float) BasisNoise.quickMultioctave(s0, s1, x[i], y[i], octaves, in, os, ox, oy, im, om, shift);
-                }
+                double[] sum = new double[n];
+                BasisNoise.quickMultioctave(seed(a[2]), seed(a[3]), v(a[0], values, n), v(a[1], values, n), (int) u(a[4]),
+                        u(a[5]), u(a[6]), u(a[7]), u(a[8]), u(a[9]), u(a[10]), (long) u(a[11]), sum);
+                narrow(sum, out);
             }
             case DISTANCE_FROM_NEAREST_POINT, DISTANCE_FROM_NEAREST_POINT_X, DISTANCE_FROM_NEAREST_POINT_Y -> {
                 float[] x = v(a[0], values, n), y = v(a[1], values, n);
@@ -447,14 +442,18 @@ public final class Evaluator {
                 int dims = (a.length - 2) / 3;
                 double multiplier = u(a[0]), maximum = u(a[1]);
                 float[][] inputs = new float[dims][];
+                double[] from = new double[dims];
+                double[] to = new double[dims];
                 for (int d = 0; d < dims; d++) {
                     inputs[d] = v(a[2 + d], values, n);
+                    from[d] = u(a[2 + dims + d]);
+                    to[d] = u(a[2 + 2 * dims + d]);
                 }
                 for (int i = 0; i < n; i++) {
                     double inside = Double.POSITIVE_INFINITY;
                     for (int d = 0; d < dims; d++) {
                         double value = inputs[d][i];
-                        inside = Math.min(inside, Math.min(value - u(a[2 + dims + d]), u(a[2 + 2 * dims + d]) - value));
+                        inside = Math.min(inside, Math.min(value - from[d], to[d] - value));
                     }
                     out[i] = (float) Math.min(maximum, multiplier * inside);
                 }
@@ -471,9 +470,19 @@ public final class Evaluator {
                 u(a[8]), u(a[9]), u(a[10]), (int) u(a[11]), (int) u(a[12]), u(a[13]) > 0, (int) u(a[14]), u(a[15]));
     }
 
+    /** An argument over the batch; a constant one is filled once per batch and kept with the values. */
     private float[] v(int arg, float[][] values, int n) {
         int t = target[arg];
-        return varies[t] ? values[t] : filled(uniform[t], n);
+        if (values[t] == null) {
+            values[t] = filled(uniform[t], n);
+        }
+        return values[t];
+    }
+
+    private static void narrow(double[] from, float[] to) {
+        for (int i = 0; i < from.length; i++) {
+            to[i] = (float) from[i];
+        }
     }
 
     private static float[] filled(double value, int n) {
