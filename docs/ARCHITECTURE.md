@@ -73,6 +73,9 @@ The world
   decides only where water is. `water` is vanilla water 3 deep over sand, `deepwater` 8 deep over
   gravel, cut into the ground.
 - A Factorio tile is a block of its own, `nauvis_terrain:<tile>`, shovel work that drops itself.
+  Its textures are four of Factorio's own variants of the tile at 16 pixels and six colours
+  (`tools/make_textures.py`), each block one of the four at one of four turns; the cliff's are
+  squares of Factorio's cliff face, made the same way.
   Grass and dirt count as `#minecraft:dirt` and sand and red desert as `#minecraft:sand`, so what
   a player plants grows.
 - Terraces: a column's level is `floor((cliff_elevation - cliff_elevation_0) / cliff_elevation_interval)`,

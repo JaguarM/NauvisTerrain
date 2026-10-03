@@ -1,7 +1,66 @@
 {
   "variants": {
-    "": {
-      "model": "nauvis_terrain:block/grass_1"
-    }
+    "": [
+      {
+        "model": "nauvis_terrain:block/grass_1_0"
+      },
+      {
+        "model": "nauvis_terrain:block/grass_1_0",
+        "y": 90
+      },
+      {
+        "model": "nauvis_terrain:block/grass_1_0",
+        "y": 180
+      },
+      {
+        "model": "nauvis_terrain:block/grass_1_0",
+        "y": 270
+      },
+      {
+        "model": "nauvis_terrain:block/grass_1_1"
+      },
+      {
+        "model": "nauvis_terrain:block/grass_1_1",
+        "y": 90
+      },
+      {
+        "model": "nauvis_terrain:block/grass_1_1",
+        "y": 180
+      },
+      {
+        "model": "nauvis_terrain:block/grass_1_1",
+        "y": 270
+      },
+      {
+        "model": "nauvis_terrain:block/grass_1_2"
+      },
+      {
+        "model": "nauvis_terrain:block/grass_1_2",
+        "y": 90
+      },
+      {
+        "model": "nauvis_terrain:block/grass_1_2",
+        "y": 180
+      },
+      {
+        "model": "nauvis_terrain:block/grass_1_2",
+        "y": 270
+      },
+      {
+        "model": "nauvis_terrain:block/grass_1_3"
+      },
+      {
+        "model": "nauvis_terrain:block/grass_1_3",
+        "y": 90
+      },
+      {
+        "model": "nauvis_terrain:block/grass_1_3",
+        "y": 180
+      },
+      {
+        "model": "nauvis_terrain:block/grass_1_3",
+        "y": 270
+      }
+    ]
   }
 }

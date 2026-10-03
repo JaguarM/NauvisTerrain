@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "nauvis_terrain:block/dirt_1"
+    "model": "nauvis_terrain:block/dirt_1_0"
   }
 }

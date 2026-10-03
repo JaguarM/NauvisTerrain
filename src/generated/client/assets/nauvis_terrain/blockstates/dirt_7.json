@@ -1,7 +1,66 @@
 {
   "variants": {
-    "": {
-      "model": "nauvis_terrain:block/dirt_7"
-    }
+    "": [
+      {
+        "model": "nauvis_terrain:block/dirt_7_0"
+      },
+      {
+        "model": "nauvis_terrain:block/dirt_7_0",
+        "y": 90
+      },
+      {
+        "model": "nauvis_terrain:block/dirt_7_0",
+        "y": 180
+      },
+      {
+        "model": "nauvis_terrain:block/dirt_7_0",
+        "y": 270
+      },
+      {
+        "model": "nauvis_terrain:block/dirt_7_1"
+      },
+      {
+        "model": "nauvis_terrain:block/dirt_7_1",
+        "y": 90
+      },
+      {
+        "model": "nauvis_terrain:block/dirt_7_1",
+        "y": 180
+      },
+      {
+        "model": "nauvis_terrain:block/dirt_7_1",
+        "y": 270
+      },
+      {
+        "model": "nauvis_terrain:block/dirt_7_2"
+      },
+      {
+        "model": "nauvis_terrain:block/dirt_7_2",
+        "y": 90
+      },
+      {
+        "model": "nauvis_terrain:block/dirt_7_2",
+        "y": 180
+      },
+      {
+        "model": "nauvis_terrain:block/dirt_7_2",
+        "y": 270
+      },
+      {
+        "model": "nauvis_terrain:block/dirt_7_3"
+      },
+      {
+        "model": "nauvis_terrain:block/dirt_7_3",
+        "y": 90
+      },
+      {
+        "model": "nauvis_terrain:block/dirt_7_3",
+        "y": 180
+      },
+      {
+        "model": "nauvis_terrain:block/dirt_7_3",
+        "y": 270
+      }
+    ]
   }
 }

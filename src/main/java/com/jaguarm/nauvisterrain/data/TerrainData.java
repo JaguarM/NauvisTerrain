@@ -1,6 +1,5 @@
 package com.jaguarm.nauvisterrain.data;
 
-import com.google.common.hash.Hashing;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -11,6 +10,10 @@ import com.jaguarm.nauvisterrain.world.TerrainBlocks;
 import net.minecraft.client.data.models.BlockModelGenerators;
 import net.minecraft.client.data.models.ItemModelGenerators;
 import net.minecraft.client.data.models.ModelProvider;
+import net.minecraft.client.data.models.blockstates.MultiVariantGenerator;
+import net.minecraft.client.data.models.model.ModelTemplates;
+import net.minecraft.client.data.models.model.TextureMapping;
+import net.minecraft.client.renderer.block.dispatch.Variant;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
@@ -31,11 +34,6 @@ import net.neoforged.neoforge.common.data.LanguageProvider;
 import net.neoforged.neoforge.data.event.GatherDataEvent;
 import net.neoforged.neoforge.registries.DeferredBlock;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -55,6 +53,8 @@ public final class TerrainData {
             "water", new String[]{"3", "minecraft:sand"},
             "deepwater", new String[]{"8", "minecraft:gravel"});
     private static final int SURFACE = 64;
+    /** How many textures tools/make_textures.py makes of each tile and of the cliff. */
+    private static final int TEXTURE_VARIANTS = 4;
     /** How many blocks one of Factorio's cliffs rises. */
     private static final int CLIFF_STEP = 4;
     /** The vanilla block each Factorio resource is (CLAUDE.md, rule 4); uranium and oil have none. */
@@ -76,7 +76,6 @@ public final class TerrainData {
     @SubscribeEvent
     static void client(GatherDataEvent.Client event) {
         event.createProvider(Models::new);
-        event.createProvider(Textures::new);
         event.createProvider((PackOutput output) -> new Lang(output));
     }
 
@@ -100,43 +99,29 @@ public final class TerrainData {
 
         @Override
         protected void registerModels(BlockModelGenerators blockModels, ItemModelGenerators itemModels) {
-            TerrainBlocks.TILES.values().forEach(block -> blockModels.createTrivialCube(block.get()));
-            blockModels.createTrivialCube(TerrainBlocks.CLIFF.get());
-        }
-    }
-
-    /** A flat texture of each tile's map colour, until the textures start from Factorio's own. */
-    private record Textures(PackOutput output) implements DataProvider {
-        @Override
-        public CompletableFuture<?> run(CachedOutput cache) {
-            Path textures = output.getOutputFolder(PackOutput.Target.RESOURCE_PACK).resolve(NauvisTerrain.MOD_ID).resolve("textures/block");
-            for (Prototype tile : groundTiles()) {
-                write(cache, textures.resolve(TerrainBlocks.id(tile.name()) + ".png"), tile.mapColor());
-            }
-            write(cache, textures.resolve("cliff.png"), Nauvis.program().cliff.mapColor());
-            return CompletableFuture.completedFuture(null);
+            TerrainBlocks.TILES.values().forEach(block -> varied(blockModels, block.get()));
+            varied(blockModels, TerrainBlocks.CLIFF.get());
         }
 
-        private static void write(CachedOutput cache, Path path, int rgb) {
-            BufferedImage image = new BufferedImage(16, 16, BufferedImage.TYPE_INT_RGB);
-            for (int y = 0; y < 16; y++) {
-                for (int x = 0; x < 16; x++) {
-                    image.setRGB(x, y, rgb);
+        /** Four textures, tools/make_textures.py's, each at four turns, picked at random per block. */
+        private static void varied(BlockModelGenerators blockModels, Block block) {
+            List<Variant> variants = new ArrayList<>();
+            Identifier first = null;
+            for (int k = 0; k < TEXTURE_VARIANTS; k++) {
+                Identifier model = ModelTemplates.CUBE_ALL.createWithSuffix(block, "_" + k,
+                        TextureMapping.cube(TextureMapping.getBlockTexture(block, "_" + k)), blockModels.modelOutput);
+                Variant variant = BlockModelGenerators.plainModel(model);
+                variants.add(variant);
+                variants.add(variant.with(BlockModelGenerators.Y_ROT_90));
+                variants.add(variant.with(BlockModelGenerators.Y_ROT_180));
+                variants.add(variant.with(BlockModelGenerators.Y_ROT_270));
+                if (first == null) {
+                    first = model;
                 }
             }
-            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-            try {
-                ImageIO.write(image, "png", bytes);
-                byte[] png = bytes.toByteArray();
-                cache.writeIfNeeded(path, png, Hashing.sha1().hashBytes(png));
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
-        }
-
-        @Override
-        public String getName() {
-            return "Nauvis tile textures";
+            blockModels.blockStateOutput.accept(MultiVariantGenerator.dispatch(block,
+                    BlockModelGenerators.variants(variants.toArray(Variant[]::new))));
+            blockModels.registerSimpleItemModel(block.asItem(), first);
         }
     }
 

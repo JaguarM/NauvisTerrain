@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "nauvis_terrain:block/red_desert_1"
+    "model": "nauvis_terrain:block/red_desert_1_0"
   }
 }
