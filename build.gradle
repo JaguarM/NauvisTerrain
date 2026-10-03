@@ -148,3 +148,34 @@ tasks.named('jar', Jar) {
         into('META-INF')
     }
 }
+
+// The noise program is generated (CLAUDE.md, rule 2): the generator's tests, then a diff of what
+// it makes against the program on disk. Skipped when Wube's gitignored dump is absent.
+var checkTerrain = tasks.register('checkTerrain') {
+    group = 'verification'
+    description = 'Tests tools/gen_terrain.py and diffs the noise program it makes against the one on disk.'
+
+    def root = projectDir
+    def dumps = fileTree('reference/factorio') { include 'data-raw-*.json' }
+    inputs.files(fileTree('tools') { include '*.py' }, 'data/terrain.json', dumps)
+            .withPropertyName('generator')
+    outputs.upToDateWhen { false }
+
+    doLast {
+        if (dumps.isEmpty()) {
+            logger.lifecycle('checkTerrain: skipped, reference/factorio/data-raw-<version>.json is absent (reference/README.md)')
+            return
+        }
+        [['-m', 'unittest', '-q', 'tools/test_gen_terrain.py'], ['tools/gen_terrain.py', '--check']].each { args ->
+            // ProcessBuilder rather than exec {}, which is gone from task actions in Gradle 9.
+            def process = new ProcessBuilder(['python'] + args).directory(root).redirectErrorStream(true).start()
+            def output = process.inputStream.text
+            logger.lifecycle(output)
+            if (process.waitFor() != 0) {
+                throw new GradleException('The noise program disagrees with the generator, or the generator with its tests. '
+                        + 'Regenerate rather than edit by hand: python tools/gen_terrain.py --write')
+            }
+        }
+    }
+}
+tasks.named('check') { dependsOn checkTerrain }

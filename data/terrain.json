@@ -1,0 +1,13 @@
+{
+  "planet": "nauvis",
+  "not_placed": {
+    "uranium-ore": "vanilla has no uranium block",
+    "crude-oil": "vanilla has no oil",
+    "biter-spawner": "no enemies",
+    "spitter-spawner": "no enemies",
+    "small-worm-turret": "no enemies",
+    "medium-worm-turret": "no enemies",
+    "big-worm-turret": "no enemies",
+    "behemoth-worm-turret": "no enemies"
+  }
+}

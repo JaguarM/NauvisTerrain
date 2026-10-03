@@ -18,8 +18,12 @@ operation on earlier nodes, and named roots for what the world asks: `elevation`
 `aux`, `temperature`, `cliff_elevation`, `cliffiness`, and the probability and richness of
 every tile, tree, rock, decorative and ore it places. What the map settings change (`map_seed`,
 each `control:<name>:<setting>`, `starting_positions`) stays a named input, so one program serves
-every seed and slider. `data/terrain.json` holds the choices the dump cannot make: the planet, and
-which prototypes the world places.
+every seed and slider. A property a preset swaps through `property_expression_names` (`elevation`
+to `elevation_lakes`, say) is one node holding every value the presets give it, and the map
+settings pick one. `data/terrain.json` holds the choices the dump cannot make: the planet, and
+which prototypes the world does not place. The program is
+`src/main/resources/nauvis_terrain/noise/nauvis.json`, and it also carries what the world needs of
+each prototype besides its noise: order, placement density, collision box, map colour.
 
 A new Factorio version is a new dump and a regenerated program, never a hand edit.
 

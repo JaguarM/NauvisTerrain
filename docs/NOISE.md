@@ -65,7 +65,8 @@ What Nauvis's ground, cliffs, trees, rocks, decoratives and four ores reach, and
 | `spot_noise` | the documented algorithm with our own candidate points: regions of `region_size`, candidates spaced by `suggested_minimum_candidate_point_spacing`, cones of `3 · quantity / (π · radius²)` peak, a region filled to its target quantity |
 
 Not reached by Nauvis's terrain and so not written: `voronoi_*`, `multisample`, `terrace`, `ridge`,
-`pow_precise`. `noise_layer_id` is how a string `seed1` becomes a number: CRC32.
+`pow_precise`. A string is a number wherever a number is wanted, as a `seed1` takes it
+(`noise_layer_noise('sand-decal')`): its CRC32, which is also what `noise_layer_id` returns.
 
 What our noise has to share with Factorio's
 -------------------------------------------
