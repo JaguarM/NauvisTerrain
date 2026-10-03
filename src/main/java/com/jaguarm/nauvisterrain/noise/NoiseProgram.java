@@ -78,8 +78,8 @@ public final class NoiseProgram {
         }
     }
 
-    /** The cliff prototype: its grid, offset, box, layers and colour. */
-    public record Cliff(String name, String control, double gridWidth, double gridHeight,
+    /** The cliff prototype: its English name, grid, offset, box, layers and colour. */
+    public record Cliff(String name, String title, String control, double gridWidth, double gridHeight,
                         double offsetX, double offsetY, double[] collisionBox, Mask collisionMask, int mapColor) {
     }
 
@@ -114,7 +114,7 @@ public final class NoiseProgram {
         JsonObject c = json.getAsJsonObject("cliff");
         JsonArray grid = c.getAsJsonArray("grid_size");
         JsonArray offset = c.getAsJsonArray("grid_offset");
-        cliff = new Cliff(c.get("name").getAsString(), c.get("control").getAsString(),
+        cliff = new Cliff(c.get("name").getAsString(), c.get("title").getAsString(), c.get("control").getAsString(),
                 grid.get(0).getAsDouble(), grid.get(1).getAsDouble(),
                 offset.get(0).getAsDouble(), offset.get(1).getAsDouble(), box(c.get("collision_box")),
                 mask(c.getAsJsonObject("collision_mask")), colour(c.get("map_color")));

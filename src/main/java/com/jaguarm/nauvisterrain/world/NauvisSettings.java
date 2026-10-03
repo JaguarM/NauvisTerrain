@@ -8,12 +8,20 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * The world preset's settings for the generator: the y of the land's top block, for each Factorio
- * tile the block that stands for it, and for each resource the block that replaces the ground where
- * Factorio puts it (docs/ARCHITECTURE.md, what a pack changes). A resource with no block is not
- * placed.
+ * The world preset's settings for the generator: the y of the lowest terrace's top block, for each
+ * Factorio tile the block that stands for it, for each resource the block that replaces the ground
+ * where Factorio puts it, and the cliffs' block and step (docs/ARCHITECTURE.md, what a pack
+ * changes). A resource with no block is not placed.
  */
-public record NauvisSettings(int surface, Map<String, Tile> tiles, Map<String, BlockState> resources) {
+public record NauvisSettings(int surface, Map<String, Tile> tiles, Map<String, BlockState> resources, Cliff cliff) {
+
+    /** A cliff's face block, and how many blocks one cliff level rises. */
+    public record Cliff(BlockState block, int step) {
+        public static final Codec<Cliff> CODEC = RecordCodecBuilder.create(i -> i.group(
+                BlockState.CODEC.fieldOf("block").forGetter(Cliff::block),
+                Codec.intRange(1, 32).optionalFieldOf("step", 4).forGetter(Cliff::step)
+        ).apply(i, Cliff::new));
+    }
 
     /**
      * One tile's blocks. A ground tile is its block on top of the land; a liquid tile is a pool of
@@ -31,6 +39,7 @@ public record NauvisSettings(int surface, Map<String, Tile> tiles, Map<String, B
             Codec.INT.optionalFieldOf("surface", 64).forGetter(NauvisSettings::surface),
             Codec.unboundedMap(Codec.STRING, Tile.CODEC).fieldOf("tiles").forGetter(NauvisSettings::tiles),
             Codec.unboundedMap(Codec.STRING, BlockState.CODEC).optionalFieldOf("resources", Map.of())
-                    .forGetter(NauvisSettings::resources)
+                    .forGetter(NauvisSettings::resources),
+            Cliff.CODEC.fieldOf("cliff").forGetter(NauvisSettings::cliff)
     ).apply(i, NauvisSettings::new));
 }

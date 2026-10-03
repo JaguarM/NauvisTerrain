@@ -31,6 +31,7 @@ public final class NauvisTerrain {
         modBus.addListener(BuildCreativeModeTabContentsEvent.class, event -> {
             if (event.getTabKey() == CreativeModeTabs.NATURAL_BLOCKS) {
                 TerrainBlocks.TILES.values().forEach(event::accept);
+                event.accept(TerrainBlocks.CLIFF);
             }
         });
         TerrainGameTests.register(modBus);

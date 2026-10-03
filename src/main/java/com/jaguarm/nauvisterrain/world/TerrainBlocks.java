@@ -16,6 +16,8 @@ import java.util.Map;
 /**
  * A block for each of Nauvis's ground tiles, under the tile's Factorio name: `grass-1` is
  * `nauvis_terrain:grass_1` (CLAUDE.md, rule 3). A water tile is vanilla water and has no block.
+ * And the cliff, which no tool mines: what breaks one is the pack's, through
+ * `#nauvis_terrain:cliffs`.
  */
 public final class TerrainBlocks {
     public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(NauvisTerrain.MOD_ID);
@@ -23,6 +25,11 @@ public final class TerrainBlocks {
 
     /** Each ground tile's block, by Factorio name. */
     public static final Map<String, DeferredBlock<Block>> TILES;
+
+    /** Factorio's cliff: as hard to remove as bedrock, and it drops nothing. */
+    public static final DeferredBlock<Block> CLIFF = BLOCKS.registerSimpleBlock("cliff", properties -> properties
+            .mapColor(nearest(Nauvis.program().cliff.mapColor())).strength(-1.0F, 3_600_000.0F).noLootTable()
+            .sound(SoundType.STONE));
 
     static {
         Map<String, DeferredBlock<Block>> tiles = new LinkedHashMap<>();
@@ -34,6 +41,7 @@ public final class TerrainBlocks {
             }
         }
         TILES = Collections.unmodifiableMap(tiles);
+        ITEMS.registerSimpleBlockItem(CLIFF);
     }
 
     private TerrainBlocks() {

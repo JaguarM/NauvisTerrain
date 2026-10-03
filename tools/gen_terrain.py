@@ -665,6 +665,7 @@ def build(raw: dict, terrain: dict, locale: dict, extra_roots: tuple[str, ...] =
         "prototypes": prototypes,
         "cliff": {
             "name": cliff_name,
+            "title": title(cliff, "entity", locale),
             "control": raw["planet"][terrain["planet"]]["map_gen_settings"]["cliff_settings"].get("control"),
             "grid_size": cliff["grid_size"],
             "grid_offset": cliff["grid_offset"],

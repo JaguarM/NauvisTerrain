@@ -69,14 +69,24 @@ The world
   sampled at the block's corner, as Factorio samples a tile.
 - The world type is `nauvis_terrain:nauvis` in the world type list. Its map seed is the world
   seed's low 32 bits, Factorio's being 32 bits: seed 123 is the map `./gradlew test` renders.
-- The world is flat. Land is one height between cliffs, its top block at y 64; Factorio's
-  `elevation` decides only where water is. `water` is vanilla water 3 deep over sand, `deepwater`
-  8 deep over gravel, both cut into the ground with their surface level with the land's.
+- The world is flat between cliffs. Land is one height on each terrace; Factorio's `elevation`
+  decides only where water is. `water` is vanilla water 3 deep over sand, `deepwater` 8 deep over
+  gravel, cut into the ground.
 - A Factorio tile is a block of its own, `nauvis_terrain:<tile>`, shovel work that drops itself.
   Grass and dirt count as `#minecraft:dirt` and sand and red desert as `#minecraft:sand`, so what
   a player plants grows.
-- A cliff is a step of a fixed few blocks between two cliff levels, so land rises in terraces
-  where Factorio draws cliffs. Where Factorio leaves a gap in a cliff line, the step is a ramp.
+- Terraces: a column's level is `floor((cliff_elevation - cliff_elevation_0) / cliff_elevation_interval)`,
+  and each level is 4 blocks above the one below. The lowest terrace is level -1, top block at y
+  64; lower ground is on it. On Nauvis almost all land is level -1 or 0: `cliff_elevation` runs
+  from -22 to 47 over 99% of the map, the plateaus of `nauvis_hills` being level 0.
+- Where `cliffiness` is above 0.5, the step is a sheer face of `nauvis_terrain:cliff`, which no
+  tool mines and only bedrock-proof force breaks: what removes a cliff is a pack's, aimed at
+  `#nauvis_terrain:cliffs`, as Factorio's cliffs go only to cliff explosives. Where Factorio
+  leaves a gap, the land ramps up over the last tenth of the level's span instead, a few blocks
+  wide. A cliff's top is still its tile.
+- Every pool lies on the lowest terrace, so water is always level and never spills down a step: a
+  lake on a plateau is a pool sunk into it. A raised land column is its tile's block from the
+  lowest terrace up, so a bank cut into it shows soil and a cliff shows rock.
 - The top block is the tile's, over stone, deepslate and bedrock, with vanilla's blends between
   them. No caves, no aquifers.
 - An ore replaces the ground where Factorio puts a resource: iron, copper, coal and stone, as

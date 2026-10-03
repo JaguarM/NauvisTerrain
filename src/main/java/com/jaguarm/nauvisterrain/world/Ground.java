@@ -15,9 +15,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Nauvis's ground for one world seed: each column the tile's block on top of the land, or its
- * liquid cut into it, over stone, deepslate and bedrock, and a resource's block in place of the
- * top block where Factorio puts one (docs/ARCHITECTURE.md, the world).
+ * Nauvis's ground for one world seed (docs/ARCHITECTURE.md, the world). Land rises in terraces, a
+ * step at each of Factorio's cliff levels: a cliff face where Factorio draws a cliff, a ramp where
+ * it leaves a gap. Each land column is its tile's block from the lowest terrace up, a liquid tile
+ * is a pool cut in at the lowest terrace, and below that is stone, deepslate and bedrock. Where
+ * Factorio puts a resource, its block replaces the top block.
  */
 final class Ground {
     private static final BlockState STONE = Blocks.STONE.defaultBlockState();
@@ -28,10 +30,20 @@ final class Ground {
     private static final int DEEPSLATE_BLEND = 8;
     /** Bedrock thins out over these blocks above the bottom of the world. */
     private static final int BEDROCK_BLEND = 5;
+    /** The lowest terrace: the cliff level below Factorio's first contour. Lower ground is on it. */
+    private static final int LOWEST_LEVEL = -1;
+    /** In a gap, the last part of a level's span, as a share of the interval, over which land ramps up to the next. */
+    private static final double RAMP = 0.1;
+    private static final int[][] NEIGHBOURS = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
 
     final Terrain terrain;
     final long mapSeed;
+    /** The top of the lowest terrace, and the surface of every pool. */
     final int surface;
+    private final int step;
+    private final BlockState cliff;
+    private final double cliffElevation0;
+    private final double cliffInterval;
     private final BlockState[] block;
     private final BlockState[] floor;
     private final int[] depth;
@@ -39,8 +51,13 @@ final class Ground {
 
     Ground(NauvisSettings settings, long worldSeed) {
         this.mapSeed = worldSeed & 0xFFFFFFFFL;
-        this.terrain = new Terrain(new Evaluator(Nauvis.program(), MapSettings.defaults(mapSeed)));
+        MapSettings map = MapSettings.defaults(mapSeed);
+        this.terrain = new Terrain(new Evaluator(Nauvis.program(), map));
         this.surface = settings.surface();
+        this.step = settings.cliff().step();
+        this.cliff = settings.cliff().block();
+        this.cliffElevation0 = map.cliffElevation0();
+        this.cliffInterval = map.cliffElevationInterval();
         this.resources = settings.resources();
         List<Prototype> tiles = terrain.tiles;
         block = new BlockState[tiles.size()];
@@ -58,6 +75,10 @@ final class Ground {
         }
     }
 
+    /** One column's shape: its tile, the y of its top block, and the lowest y of its cliff face, if it has one. */
+    private record Column(int tile, int top, int faceFrom) {
+    }
+
     /** The ground's blocks in a chunk, with its two worldgen heightmaps. */
     void fill(ChunkAccess chunk) {
         int x0 = chunk.getPos().getMinBlockX();
@@ -66,39 +87,38 @@ final class Ground {
         Heightmap oceanFloor = chunk.getOrCreateHeightmapUnprimed(Heightmap.Types.OCEAN_FLOOR_WG);
         Heightmap worldSurface = chunk.getOrCreateHeightmapUnprimed(Heightmap.Types.WORLD_SURFACE_WG);
         int minY = chunk.getMinY();
-        int top = Math.min(surface, chunk.getMaxY());
+        int[][] tops = new int[16][16];
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
-                int tile = tileIndex(area, x0 + x, z0 + z);
-                for (int y = minY; y <= top; y++) {
-                    BlockState state = state(tile, x0 + x, y, z0 + z, minY);
-                    if (state == AIR) {
-                        continue;
+                Column column = column(area, x0 + x, z0 + z);
+                tops[x][z] = column.top;
+                for (int y = minY; y <= Math.min(column.top, chunk.getMaxY()); y++) {
+                    BlockState state = state(column, x0 + x, y, z0 + z, minY);
+                    if (state != AIR) {
+                        chunk.getSection(chunk.getSectionIndex(y)).setBlockState(x, y & 15, z, state, false);
                     }
-                    LevelChunkSection section = chunk.getSection(chunk.getSectionIndex(y));
-                    section.setBlockState(x, y & 15, z, state, false);
                 }
-                int floorY = surface - depth[tile];
-                oceanFloor.update(x, depth[tile] > 1 ? floorY : surface, z, depth[tile] > 1 ? floor[tile] : block[tile]);
-                worldSurface.update(x, surface, z, block[tile]);
+                boolean liquid = liquid(column.tile);
+                oceanFloor.update(x, liquid ? surface - depth[column.tile] : column.top, z,
+                        liquid ? floor[column.tile] : block[column.tile]);
+                worldSurface.update(x, column.top, z, block[column.tile]);
             }
         }
-        if (surface <= chunk.getMaxY()) {
-            LevelChunkSection section = chunk.getSection(chunk.getSectionIndex(surface));
-            for (Terrain.Placed placed : area.entities()) {
-                BlockState ore = resources.get(placed.prototype().name());
-                if (ore != null && placed.prototype().type().equals("resource")) {
-                    section.setBlockState(placed.x() - x0, surface & 15, placed.y() - z0, ore, false);
-                }
+        for (Terrain.Placed placed : area.entities()) {
+            BlockState ore = resources.get(placed.prototype().name());
+            int top = tops[placed.x() - x0][placed.y() - z0];
+            if (ore != null && placed.prototype().type().equals("resource") && top <= chunk.getMaxY()) {
+                LevelChunkSection section = chunk.getSection(chunk.getSectionIndex(top));
+                section.setBlockState(placed.x() - x0, top & 15, placed.y() - z0, ore, false);
             }
         }
     }
 
     /** The y above the highest block in the column that the heightmap counts. */
     int height(int x, int z, Heightmap.Types type, int minY) {
-        int tile = tileIndex(terrain.area(x, z, 1, 1), x, z);
-        for (int y = surface; y >= minY; y--) {
-            if (type.isOpaque().test(state(tile, x, y, z, minY))) {
+        Column column = column(terrain.area(x, z, 1, 1), x, z);
+        for (int y = column.top; y >= minY; y--) {
+            if (type.isOpaque().test(state(column, x, y, z, minY))) {
                 return y + 1;
             }
         }
@@ -107,33 +127,77 @@ final class Ground {
 
     /** The whole column from the bottom of the world up. */
     BlockState[] column(int x, int z, int minY, int height) {
-        int tile = tileIndex(terrain.area(x, z, 1, 1), x, z);
+        Column column = column(terrain.area(x, z, 1, 1), x, z);
         BlockState[] states = new BlockState[height];
         for (int i = 0; i < height; i++) {
-            int y = minY + i;
-            states[i] = y > surface ? AIR : state(tile, x, y, z, minY);
+            states[i] = state(column, x, minY + i, z, minY);
         }
         return states;
     }
 
     Prototype tile(int x, int z) {
-        return terrain.tiles.get(tileIndex(terrain.area(x, z, 1, 1), x, z));
+        return terrain.tiles.get(terrain.area(x, z, 1, 1).tileIndex(x, z));
     }
 
-    private int tileIndex(Terrain.Area area, int x, int z) {
-        return area.tileIndex(x, z);
+    /** The y of the top block at a column. */
+    int top(int x, int z) {
+        return column(terrain.area(x, z, 1, 1), x, z).top;
     }
 
-    private BlockState state(int tile, int x, int y, int z, int minY) {
-        if (y > surface) {
+    private boolean liquid(int tile) {
+        return depth[tile] > 1;
+    }
+
+    private Column column(Terrain.Area area, int x, int z) {
+        int tile = area.tileIndex(x, z);
+        if (liquid(tile)) {
+            return new Column(tile, surface, Integer.MAX_VALUE);
+        }
+        int top = landTop(area, x, z);
+        int faceFrom = Integer.MAX_VALUE;
+        if (area.cliffiness(x, z) > 0.5) {
+            for (int[] d : NEIGHBOURS) {
+                if (!liquid(area.tileIndex(x + d[0], z + d[1]))) {
+                    int below = landTop(area, x + d[0], z + d[1]);
+                    if (below < top) {
+                        faceFrom = Math.min(faceFrom, below + 1);
+                    }
+                }
+            }
+        }
+        return new Column(tile, top, faceFrom);
+    }
+
+    /** A land column's top: its terrace, and in a gap, its share of the ramp up to the next. */
+    private int landTop(Terrain.Area area, int x, int z) {
+        double u = (area.cliffElevation(x, z) - cliffElevation0) / cliffInterval;
+        int level = (int) Math.floor(u);
+        if (level < LOWEST_LEVEL) {
+            return surface;
+        }
+        int top = surface + step * (level - LOWEST_LEVEL);
+        if (area.cliffiness(x, z) <= 0.5) {
+            double into = (u - level - (1 - RAMP)) / RAMP;
+            top += (int) Math.floor(step * Math.min(Math.max(into, 0), 1));
+        }
+        return top;
+    }
+
+    private BlockState state(Column column, int x, int y, int z, int minY) {
+        if (y > column.top) {
             return AIR;
         }
-        int floorY = surface - depth[tile];
-        if (y > floorY) {
-            return block[tile];
-        }
-        if (y == floorY && depth[tile] > 1) {
-            return floor[tile];
+        int tile = column.tile;
+        if (liquid(tile)) {
+            int bed = surface - depth[tile];
+            if (y > bed) {
+                return block[tile];
+            }
+            if (y == bed) {
+                return floor[tile];
+            }
+        } else if (y >= surface) {
+            return y >= column.faceFrom && y < column.top ? cliff : block[tile];
         }
         if (y < minY + BEDROCK_BLEND && (y == minY || chance(x, y, z, 1) < (double) (minY + BEDROCK_BLEND - y) / BEDROCK_BLEND)) {
             return BEDROCK;

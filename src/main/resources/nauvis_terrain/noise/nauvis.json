@@ -139,6 +139,7 @@
   },
   "cliff": {
     "name": "cliff",
+    "title": "Cliff",
     "control": "nauvis_cliff",
     "grid_size": [
       4,

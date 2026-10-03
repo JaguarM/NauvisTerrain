@@ -12,6 +12,9 @@ import net.minecraft.client.data.models.BlockModelGenerators;
 import net.minecraft.client.data.models.ItemModelGenerators;
 import net.minecraft.client.data.models.ModelProvider;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.tags.TagKey;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.DataProvider;
 import net.minecraft.data.PackOutput;
@@ -52,6 +55,8 @@ public final class TerrainData {
             "water", new String[]{"3", "minecraft:sand"},
             "deepwater", new String[]{"8", "minecraft:gravel"});
     private static final int SURFACE = 64;
+    /** How many blocks one of Factorio's cliffs rises. */
+    private static final int CLIFF_STEP = 4;
     /** The vanilla block each Factorio resource is (CLAUDE.md, rule 4); uranium and oil have none. */
     private static final Map<String, String> RESOURCES = Map.of(
             "iron-ore", "minecraft:iron_ore",
@@ -96,6 +101,7 @@ public final class TerrainData {
         @Override
         protected void registerModels(BlockModelGenerators blockModels, ItemModelGenerators itemModels) {
             TerrainBlocks.TILES.values().forEach(block -> blockModels.createTrivialCube(block.get()));
+            blockModels.createTrivialCube(TerrainBlocks.CLIFF.get());
         }
     }
 
@@ -105,22 +111,27 @@ public final class TerrainData {
         public CompletableFuture<?> run(CachedOutput cache) {
             Path textures = output.getOutputFolder(PackOutput.Target.RESOURCE_PACK).resolve(NauvisTerrain.MOD_ID).resolve("textures/block");
             for (Prototype tile : groundTiles()) {
-                BufferedImage image = new BufferedImage(16, 16, BufferedImage.TYPE_INT_RGB);
-                for (int y = 0; y < 16; y++) {
-                    for (int x = 0; x < 16; x++) {
-                        image.setRGB(x, y, tile.mapColor());
-                    }
-                }
-                ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-                try {
-                    ImageIO.write(image, "png", bytes);
-                    byte[] png = bytes.toByteArray();
-                    cache.writeIfNeeded(textures.resolve(TerrainBlocks.id(tile.name()) + ".png"), png, Hashing.sha1().hashBytes(png));
-                } catch (IOException e) {
-                    throw new UncheckedIOException(e);
+                write(cache, textures.resolve(TerrainBlocks.id(tile.name()) + ".png"), tile.mapColor());
+            }
+            write(cache, textures.resolve("cliff.png"), Nauvis.program().cliff.mapColor());
+            return CompletableFuture.completedFuture(null);
+        }
+
+        private static void write(CachedOutput cache, Path path, int rgb) {
+            BufferedImage image = new BufferedImage(16, 16, BufferedImage.TYPE_INT_RGB);
+            for (int y = 0; y < 16; y++) {
+                for (int x = 0; x < 16; x++) {
+                    image.setRGB(x, y, rgb);
                 }
             }
-            return CompletableFuture.completedFuture(null);
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            try {
+                ImageIO.write(image, "png", bytes);
+                byte[] png = bytes.toByteArray();
+                cache.writeIfNeeded(path, png, Hashing.sha1().hashBytes(png));
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
         }
 
         @Override
@@ -139,6 +150,7 @@ public final class TerrainData {
             for (Prototype tile : groundTiles()) {
                 addBlock(TerrainBlocks.TILES.get(tile.name()), tile.title());
             }
+            addBlock(TerrainBlocks.CLIFF, Nauvis.program().cliff.title());
             add("generator.nauvis_terrain.nauvis", "Nauvis");
         }
     }
@@ -159,6 +171,9 @@ public final class TerrainData {
         }
     }
 
+    /** What breaks a cliff targets this tag: a pack's cliff explosives, say. */
+    public static final TagKey<Block> CLIFFS = TagKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath(NauvisTerrain.MOD_ID, "cliffs"));
+
     /** Shovel work; grass and dirt count as vanilla's dirt and sand as its sand, so what grows there grows here. */
     private static class Tags extends BlockTagsProvider {
         Tags(PackOutput output, CompletableFuture<HolderLookup.Provider> lookup) {
@@ -174,6 +189,7 @@ public final class TerrainData {
                 shovel.add(block.getKey());
                 (name.startsWith("sand") || name.startsWith("red-desert") ? sand : dirt).add(block.getKey());
             });
+            tag(CLIFFS).add(TerrainBlocks.CLIFF.getKey());
         }
     }
 
@@ -297,6 +313,10 @@ public final class TerrainData {
             settings.addProperty("surface", SURFACE);
             settings.add("tiles", tiles);
             settings.add("resources", resources);
+            JsonObject cliff = new JsonObject();
+            cliff.add("block", state(NauvisTerrain.MOD_ID + ":cliff"));
+            cliff.addProperty("step", CLIFF_STEP);
+            settings.add("cliff", cliff);
             JsonObject biomeSource = new JsonObject();
             biomeSource.addProperty("type", "minecraft:fixed");
             biomeSource.addProperty("biome", "nauvis_terrain:nauvis");

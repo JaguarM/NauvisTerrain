@@ -79,6 +79,11 @@ public final class NauvisGenerator extends ChunkGenerator {
         return ground().tile(x, z);
     }
 
+    /** The y of a column's top block. */
+    public int top(int x, int z) {
+        return ground().top(x, z);
+    }
+
     @Override
     protected MapCodec<? extends ChunkGenerator> codec() {
         return CODEC;

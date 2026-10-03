@@ -12,6 +12,11 @@ Each a decision. If something looks broken, look here before treating it as a bu
 - `^` and `pow` are exact. Factorio's are an approximation, so a tile sitting on a threshold can
   come out differently.
 - Land is one height between cliffs. Factorio's `elevation` decides only where water is. *Kept.*
+- Cliffs follow the contours tile by tile, not on Factorio's 4 by 4 grid of cliff pieces, and a
+  gap is a ramp. *Kept.*
+- A lake on a plateau is a pool sunk into it: water lies only on the lowest terrace. Factorio's is
+  flat ground beside flat water. *Kept.*
+- Cliff levels below -1 are on the lowest terrace; under 1% of the map.
 - No uranium and no crude oil: vanilla has no block for either.
 - An ore's richness is not kept: a patch is one block deep and every block is one vanilla ore.
   A pack's CrumblingOre makes an ore last, and its distance rule is Factorio's richness rule.

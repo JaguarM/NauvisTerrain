@@ -6,10 +6,11 @@ Only what to pick up now and how to run things. Edit it down as jobs finish.
 Where the mod stands
 --------------------
 
-A world type, `nauvis_terrain:nauvis`: Factorio's Nauvis ground, water and starting lake laid flat
-at y 64, its tiles as blocks of their own with flat map-colour textures, over vanilla's underground,
-and its iron, copper, coal and stone patches as vanilla ore blocks one deep. No cliffs, trees, rocks
-or decoratives yet. `tools/gen_terrain.py` turns the dump into the
+A world type, `nauvis_terrain:nauvis`: Factorio's Nauvis ground, water and starting lake on
+terraces 4 blocks apart at Factorio's cliff levels, with cliff faces where Factorio draws cliffs and
+ramps in its gaps; its tiles as blocks of their own with flat map-colour textures, over vanilla's
+underground; and its iron, copper, coal and stone patches as vanilla ore blocks one deep. No
+trees, rocks or decoratives yet. `tools/gen_terrain.py` turns the dump into the
 noise program (`src/main/resources/nauvis_terrain/noise/nauvis.json`, 1494 nodes, 113 roots), the
 `noise` package runs it, calibrated against Factorio's own values until every tile's share, the
 climate, the ores and the trees match (`FACTORIO.md`, what the oracle measured), and the `world`
@@ -20,14 +21,7 @@ about 40 ms to evaluate.
 The jobs
 --------
 
-### 1. Cliffs
-
-The terraces (ARCHITECTURE, the world): the step height, the ramp at a gap, water that spans two
-levels, and the block a cliff face is made of. Factorio's cliff cannot be mined and goes only to
-cliff explosives, which this mod does not have; Project Nauvis has `nauvis:cliff_explosives`, so
-what breaks a cliff wants to be data (a tag) the pack fills.
-
-### 2. Trees, rocks and decoratives
+### 1. Trees, rocks and decoratives
 
 Twenty trees, three rocks, 34 decoratives (`FACTORIO.md` has sizes, mining times and yields). A
 Factorio tree is a small vanilla-shaped tree, oak-like or spruce-like, of logs and leaves, rooted
@@ -38,7 +32,7 @@ of the items Project Nauvis already stands in for Factorio's, so the pack needs 
 is `minecraft:oak_planks`, stone `minecraft:cobblestone`, coal `minecraft:coal`, raw fish
 `minecraft:cod`. Fish: a cod where Factorio puts fish, or nothing.
 
-### 3. Textures
+### 2. Textures
 
 Every block starts from Factorio's own graphics (`reference/README.md` says where). A tile's PNG is
 an atlas of variants (`grass-1.png` is 4096 by 576); one variant scaled down is the starting
@@ -46,20 +40,20 @@ point. Project Nauvis's `texture-workshop/README.md` is the method its icons fol
 plus a palette per texture, vanilla's idiom, six colours enough for a rocky surface, previews not
 committed. Yannic's rule for icons was "look at Factorio and then make it Minecraft pixels".
 
-### 4. The map settings
+### 3. The map settings
 
 Factorio's map generator screen in Minecraft's world creation: the seed, each control's
 frequency, size and richness (water, trees, rocks, cliffs, each ore), the climate sliders
 (`control:moisture:frequency` and `bias`, `control:aux:…`), the starting area, and the presets
 (`FACTORIO.md`). `ribbon-world`'s map is 128 tiles tall, which needs a border or a skip.
 
-### 5. Speed
+### 4. Speed
 
 Chunks per second against a vanilla world, and a pregeneration of a few thousand chunks. Factorio
 evaluates 32 by 32 tiles at a time; batching four Minecraft chunks, or caching per region, are the
 levers.
 
-### 6. Project Nauvis
+### 5. Project Nauvis
 
 Once a world is playable, the pack takes the mod as an `includeBuild`. What already meets it there:
 

@@ -9,6 +9,12 @@
           "biome": "nauvis_terrain:nauvis"
         },
         "settings": {
+          "cliff": {
+            "block": {
+              "Name": "nauvis_terrain:cliff"
+            },
+            "step": 4
+          },
           "resources": {
             "coal": {
               "Name": "minecraft:coal_ore"
