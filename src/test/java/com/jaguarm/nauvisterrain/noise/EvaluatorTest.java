@@ -180,12 +180,12 @@ class EvaluatorTest {
             }
         }
         Map<String, Integer> things = new TreeMap<>();
-        area.entities.forEach(p -> things.merge(p.prototype().name(), 1, Integer::sum));
+        area.entities().forEach(p -> things.merge(p.prototype().name(), 1, Integer::sum));
         List<String> lines = new ArrayList<>();
         lines.add(String.format("seed 123, 512 by 512 in %.2f s", seconds));
         tiles.forEach((k, v) -> lines.add(String.format("  %-14s %5.1f%%", k, 100.0 * v / (512 * 512))));
         things.forEach((k, v) -> lines.add(String.format("  %-22s %6d", k, v)));
-        lines.add("  decoratives " + area.decoratives.size());
+        lines.add("  decoratives " + area.decoratives().size());
         Files.write(Path.of("build/nauvis-123-512.txt"), lines);
         System.out.println(String.join("\n", lines));
         assertTrue(tiles.size() > 5);

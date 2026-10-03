@@ -34,6 +34,25 @@ heightmap; `MOTION_BLOCKING` stops at leaves and water. `section.setBlockState(x
 writes without heightmaps or light. `Mth.getSeed(Vec3i)` is the per-position hash for a
 deterministic `RandomSource`.
 
+A chunk generator
+-----------------
+
+- `ChunkGenerator` subclasses register a `MapCodec` in `Registries.CHUNK_GENERATOR`. The world
+  seed reaches one only through `createState(structureSets, randomState, legacyLevelSeed)`, which
+  the level's `ChunkMap` calls before any chunk is made; `RandomState` does not expose it.
+- A generator without noise settings gets `RandomState.create(NoiseGeneratorSettings.dummy(),
+  noise lookup, seed)`, whose spawn search returns 0,0.
+- `fillFromNoise` acquires each `LevelChunkSection`, writes with `setBlockState(x, y, z, state,
+  false)`, releases, and updates the `OCEAN_FLOOR_WG` and `WORLD_SURFACE_WG` heightmaps itself;
+  vanilla runs it on `Util.backgroundExecutor().forName(...)`.
+- A bare chunk for a test: `new ProtoChunk(pos, UpgradeData.EMPTY, level,
+  level.palettedContainerFactory(), null)`.
+- A world preset is named in the world type list by `generator.<namespace>.<path>`, and is listed
+  when it is in `#minecraft:normal` (`tags/worldgen/world_preset/normal.json`).
+- A biome's JSON in 26.2 has `attributes` (`minecraft:visual/sky_color`), `effects`
+  (`water_color`), `carvers`, `features` (eleven steps), `spawners` and `spawn_costs`.
+- A datapack's `pack.mcmeta` is `{"pack": {"description": ..., "min_format": 107, "max_format": 107}}`.
+
 Gametests
 ---------
 
@@ -47,6 +66,9 @@ A test helper named `run` on the enclosing class is shadowed by `GameTestInstanc
 Project Nauvis's `nauvis_lib/src/main/java/com/jaguarm/nauvislib/test/GameTests.java` and
 `PackGameTest.java` do both registrations behind `tests.add(name, maxTicks, helper -> ...)`; they
 are ours and MIT, so copy them rather than depend on them.
+The gametest server builds its world from the `minecraft:flat` world preset in its datapacks, and
+`--packs DIR` adds datapacks to that world; a pack that overrides `minecraft:flat` changes the
+world every test runs in.
 
 Datagen and data layout
 -----------------------

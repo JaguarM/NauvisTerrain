@@ -119,14 +119,14 @@ public final class Terrain {
         return new Area(x0, y0, width, height);
     }
 
-    /** The tiles, climate and things over one rectangle of the map. */
+    /** The tiles, climate and things over one rectangle of the map; the things are placed when first asked for. */
     public final class Area {
         public final int x0;
         public final int y0;
         public final int width;
         public final int height;
-        public final List<Placed> entities = new ArrayList<>();
-        public final List<Placed> decoratives = new ArrayList<>();
+        private List<Placed> entities;
+        private List<Placed> decoratives;
         private final int bx0;
         private final int by0;
         private final int bw;
@@ -143,7 +143,22 @@ public final class Terrain {
             bw = Math.floorDiv(x0 + width - 1 + margin, BLOCK) - bx0 + 1;
             int bh = Math.floorDiv(y0 + height - 1 + margin, BLOCK) - by0 + 1;
             local = new Block[bw * bh];
-            place();
+        }
+
+        /** The trees, rocks, ores and fish that stand in the area, earliest first. */
+        public List<Placed> entities() {
+            if (entities == null) {
+                place();
+            }
+            return entities;
+        }
+
+        /** The decoratives that stand in the area, earliest first. */
+        public List<Placed> decoratives() {
+            if (decoratives == null) {
+                place();
+            }
+            return decoratives;
         }
 
         public Prototype tile(int x, int y) {
@@ -168,7 +183,8 @@ public final class Terrain {
             return (int) Math.floor((cliffElevation(x, y) - s.cliffElevation0()) / s.cliffElevationInterval());
         }
 
-        private int tileIndex(int x, int y) {
+        /** The tile at a position, as its index in {@link #tiles}. */
+        public int tileIndex(int x, int y) {
             return block(x, y).tiles[inBlock(x, y)];
         }
 
@@ -247,6 +263,8 @@ public final class Terrain {
             }
             long[] order = priority;
             standing.sort(Comparator.comparingLong(k -> order[k]));
+            entities = new ArrayList<>();
+            decoratives = new ArrayList<>();
             for (int k : standing) {
                 Prototype p = things.get(thing[k]);
                 (p.kind().equals("decorative") ? decoratives : entities).add(new Placed(p, xs[k], ys[k], richness[k]));

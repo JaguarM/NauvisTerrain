@@ -65,18 +65,29 @@ name it or its `default_enabled` is not false.
 The world
 ---------
 
-- Factorio's x and y are Minecraft's x and z: both grow east and south. One tile is one block.
-- The world is flat. Land is one height between cliffs; Factorio's `elevation` decides only where
-  water is. `water` and `deepwater` are vanilla water at two depths, cut into the ground.
+- Factorio's x and y are Minecraft's x and z: both grow east and south. One tile is one block,
+  sampled at the block's corner, as Factorio samples a tile.
+- The world type is `nauvis_terrain:nauvis` in the world type list. Its map seed is the world
+  seed's low 32 bits, Factorio's being 32 bits: seed 123 is the map `./gradlew test` renders.
+- The world is flat. Land is one height between cliffs, its top block at y 64; Factorio's
+  `elevation` decides only where water is. `water` is vanilla water 3 deep over sand, `deepwater`
+  8 deep over gravel, both cut into the ground with their surface level with the land's.
+- A Factorio tile is a block of its own, `nauvis_terrain:<tile>`, shovel work that drops itself.
+  Grass and dirt count as `#minecraft:dirt` and sand and red desert as `#minecraft:sand`, so what
+  a player plants grows.
 - A cliff is a step of a fixed few blocks between two cliff levels, so land rises in terraces
   where Factorio draws cliffs. Where Factorio leaves a gap in a cliff line, the step is a ramp.
-- The top block is the tile's, over stone, deepslate and bedrock. No caves, no aquifers.
+- The top block is the tile's, over stone, deepslate and bedrock, with vanilla's blends between
+  them. No caves, no aquifers.
 - An ore replaces the ground where Factorio puts a resource: iron, copper, coal and stone, as
   vanilla's `iron_ore`, `copper_ore`, `coal_ore` and `stone`.
-- The spawn is Factorio's starting position, 0,0.
+- The spawn is Factorio's starting position, 0,0: vanilla's spawn search starts there when the
+  generator has no climate to search.
 - One biome, `nauvis_terrain:nauvis`, in `#minecraft:is_overworld` so biome modifiers aimed at
-  the overworld reach it. It carries vanilla's underground ores except iron, copper and coal, and
-  no surface features.
+  the overworld reach it. It carries vanilla's underground ores except iron, copper and coal, the
+  amethyst geode, plains' climate and mobs, Factorio's water colour, and no surface features. The
+  structures vanilla gives every overworld biome (mineshafts, strongholds, trial chambers) come
+  with the tag; the End stays reachable.
 - The chunk generator runs Minecraft's biome decoration after its own pass, so a feature that a
   biome modifier adds lands here as anywhere in the overworld: vanilla's ores, a pack's oil or
   water.

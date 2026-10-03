@@ -65,6 +65,8 @@ neoForge {
         gameTestServer {
             type = "gameTestServer"
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            // The gametest server makes its world from minecraft:flat; this pack makes that Nauvis.
+            programArguments.addAll '--packs', file('build/gametest-packs').getAbsolutePath()
         }
 
         clientData {
@@ -164,21 +166,33 @@ tasks.named('jar', Jar) {
     }
 }
 
+// The gametest world: the world preset under minecraft:flat's name, which the gametest server uses.
+var gameTestPacks = tasks.register('gameTestPacks', Sync) {
+    into 'build/gametest-packs/nauvis_world'
+    from 'src/gametest/nauvis_world'
+    from('src/generated/server/data/nauvis_terrain/worldgen/world_preset/nauvis.json') {
+        into 'data/minecraft/worldgen/world_preset'
+        rename { 'flat.json' }
+    }
+}
+tasks.matching { it.name == 'prepareGameTestServerRun' }.configureEach { dependsOn gameTestPacks }
+
 // The noise program is generated (CLAUDE.md, rule 2): the generator's tests, then a diff of what
-// it makes against the program on disk. Skipped when Wube's gitignored dump is absent.
+// it makes against the program on disk. Skipped when Wube's gitignored dump or locale is absent.
 var checkTerrain = tasks.register('checkTerrain') {
     group = 'verification'
     description = 'Tests tools/gen_terrain.py and diffs the noise program it makes against the one on disk.'
 
     def root = projectDir
     def dumps = fileTree('reference/factorio') { include 'data-raw-*.json' }
+    def locale = file('reference/factorio/locale/en/base.cfg')
     inputs.files(fileTree('tools') { include '*.py' }, 'data/terrain.json', dumps)
             .withPropertyName('generator')
     outputs.upToDateWhen { false }
 
     doLast {
-        if (dumps.isEmpty()) {
-            logger.lifecycle('checkTerrain: skipped, reference/factorio/data-raw-<version>.json is absent (reference/README.md)')
+        if (dumps.isEmpty() || !locale.exists()) {
+            logger.lifecycle("checkTerrain: skipped, Factorio's dump or locale is absent from reference/factorio (reference/README.md)")
             return
         }
         [['-m', 'unittest', '-q', 'tools/test_gen_terrain.py'], ['tools/gen_terrain.py', '--check']].each { args ->

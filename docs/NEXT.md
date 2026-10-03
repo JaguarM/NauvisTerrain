@@ -6,30 +6,20 @@ Only what to pick up now and how to run things. Edit it down as jobs finish.
 Where the mod stands
 --------------------
 
-A NeoForge mod that loads and does nothing, and the noise it will run. `tools/gen_terrain.py`
-turns the dump into `src/main/resources/nauvis_terrain/noise/nauvis.json`, 1494 nodes and 113
-roots, and `checkTerrain` in `./gradlew build` tests the generator and diffs the program. The
-`noise` package runs it (`Evaluator`, `Terrain`), calibrated against Factorio's own values through
-`tools/oracle.py` and `tools/calibrate.py` until every tile's share, the climate, the ores and the
-trees match (`FACTORIO.md`, what the oracle measured). `./gradlew test` renders seed 123 into
-`build/nauvis-123-512.png` with the shares beside it. A block of 32 by 32 tiles takes about 40 ms.
+A world type, `nauvis_terrain:nauvis`: Factorio's Nauvis ground, water and starting lake laid flat
+at y 64, its tiles as blocks of their own with flat map-colour textures, over vanilla's underground.
+No ores, cliffs, trees, rocks or decoratives yet. `tools/gen_terrain.py` turns the dump into the
+noise program (`src/main/resources/nauvis_terrain/noise/nauvis.json`, 1494 nodes, 113 roots), the
+`noise` package runs it, calibrated against Factorio's own values until every tile's share, the
+climate, the ores and the trees match (`FACTORIO.md`, what the oracle measured), and the `world`
+package lays it out. `./gradlew test` renders seed 123 into `build/nauvis-123-512.png`;
+`./gradlew runGameTestServer` checks chunks of a real Nauvis world. A block of 32 by 32 tiles takes
+about 40 ms to evaluate.
 
 The jobs
 --------
 
-### 1. The world type
-
-A chunk generator, its biome source and a world preset, `nauvis_terrain:nauvis`. Read the 26.2
-sources first: `ChunkGenerator`, `BiomeSource`, `WorldPreset`, with `NoiseBasedChunkGenerator`
-and `FlatLevelSource` as models, and how a generator runs biome decoration (ARCHITECTURE, the
-world). The biome is data (`worldgen/biome/nauvis.json`, Factorio's water colour) and joins
-`#minecraft:is_overworld`. The 21 tile blocks under Factorio's ids, a flat `map_color` texture
-each for now, named from `data/base/locale/en/base.cfg` (`[tile-name]`: "Grass", "Grass 2", "Dirt
-1"); water and deepwater; the surface height and both water depths; spawn at 0,0. Datagen runs
-are `clientData` and `serverData` (`API-26.2.md`). A gametest, with Project Nauvis's `GameTests`
-copied in, that a generated chunk's top blocks are the evaluator's tiles.
-
-### 2. Ores
+### 1. Ores
 
 `spot_noise` with the shared candidate series, iron, copper, coal and stone as `iron_ore`,
 `copper_ore`, `coal_ore` and `stone`, and the starting-area patches. Factorio's shape is Yannic's
@@ -37,14 +27,14 @@ call; Project Nauvis found thirty-to-forty-block patches too big underground and
 which is a reason to look at a patch in game early, not to change it. A patch is one block deep
 (Yannic's call): the pack's CrumblingOre can make a block last as long as its richness says.
 
-### 3. Cliffs
+### 2. Cliffs
 
 The terraces (ARCHITECTURE, the world): the step height, the ramp at a gap, water that spans two
 levels, and the block a cliff face is made of. Factorio's cliff cannot be mined and goes only to
 cliff explosives, which this mod does not have; Project Nauvis has `nauvis:cliff_explosives`, so
 what breaks a cliff wants to be data (a tag) the pack fills.
 
-### 4. Trees, rocks and decoratives
+### 3. Trees, rocks and decoratives
 
 Twenty trees, three rocks, 34 decoratives (`FACTORIO.md` has sizes, mining times and yields). A
 Factorio tree is a small vanilla-shaped tree, oak-like or spruce-like, of logs and leaves, rooted
@@ -55,7 +45,7 @@ of the items Project Nauvis already stands in for Factorio's, so the pack needs 
 is `minecraft:oak_planks`, stone `minecraft:cobblestone`, coal `minecraft:coal`, raw fish
 `minecraft:cod`. Fish: a cod where Factorio puts fish, or nothing.
 
-### 5. Textures
+### 4. Textures
 
 Every block starts from Factorio's own graphics (`reference/README.md` says where). A tile's PNG is
 an atlas of variants (`grass-1.png` is 4096 by 576); one variant scaled down is the starting
@@ -63,20 +53,20 @@ point. Project Nauvis's `texture-workshop/README.md` is the method its icons fol
 plus a palette per texture, vanilla's idiom, six colours enough for a rocky surface, previews not
 committed. Yannic's rule for icons was "look at Factorio and then make it Minecraft pixels".
 
-### 6. The map settings
+### 5. The map settings
 
 Factorio's map generator screen in Minecraft's world creation: the seed, each control's
 frequency, size and richness (water, trees, rocks, cliffs, each ore), the climate sliders
 (`control:moisture:frequency` and `bias`, `control:aux:…`), the starting area, and the presets
 (`FACTORIO.md`). `ribbon-world`'s map is 128 tiles tall, which needs a border or a skip.
 
-### 7. Speed
+### 6. Speed
 
 Chunks per second against a vanilla world, and a pregeneration of a few thousand chunks. Factorio
 evaluates 32 by 32 tiles at a time; batching four Minecraft chunks, or caching per region, are the
 levers.
 
-### 8. Project Nauvis
+### 7. Project Nauvis
 
 Once a world is playable, the pack takes the mod as an `includeBuild`. What already meets it there:
 
@@ -98,7 +88,8 @@ How to run everything
 |---|---|
 | `./gradlew build` | the jar, in `build/libs/` |
 | `./gradlew runClient` | the game with the mod |
-| `./gradlew runClientData` / `runServerData` | models and language / loot and tags |
+| `./gradlew runClientData` / `runServerData` | models, textures and language / loot, tags, the biome and the world preset |
+| `./gradlew runGameTestServer` | the gametests, in a Nauvis world |
 | `python tools/gen_terrain.py --write` | the noise program, and a summary: nodes per root, the operations reached |
 | `python -m unittest tools/test_gen_terrain.py` | the parser and the compiler |
 | `python tools/calibrate.py [NAME ...]` | Factorio's values against ours, over 4 seeds unless `--seeds` |

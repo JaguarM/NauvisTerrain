@@ -17,3 +17,5 @@ Each a decision. If something looks broken, look here before treating it as a bu
 - Under the ground is Minecraft's: stone, deepslate, bedrock and vanilla's ores other than iron,
   copper and coal. Factorio has no underground. No caves. *Kept.*
 - One starting position, at 0,0.
+- Animals and monsters: Nauvis has neither, the biome has plains'. The mod alone is survivable,
+  and a pack changes spawns with biome modifiers. *Kept.*

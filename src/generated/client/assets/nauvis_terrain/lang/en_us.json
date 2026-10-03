@@ -1,0 +1,22 @@
+{
+  "block.nauvis_terrain.dirt_1": "Dirt 1",
+  "block.nauvis_terrain.dirt_2": "Dirt 2",
+  "block.nauvis_terrain.dirt_3": "Dirt 3",
+  "block.nauvis_terrain.dirt_4": "Dirt 4",
+  "block.nauvis_terrain.dirt_5": "Dirt 5",
+  "block.nauvis_terrain.dirt_6": "Dirt 6",
+  "block.nauvis_terrain.dirt_7": "Dirt 7",
+  "block.nauvis_terrain.dry_dirt": "Dry dirt",
+  "block.nauvis_terrain.grass_1": "Grass",
+  "block.nauvis_terrain.grass_2": "Grass 2",
+  "block.nauvis_terrain.grass_3": "Grass 3",
+  "block.nauvis_terrain.grass_4": "Grass 4",
+  "block.nauvis_terrain.red_desert_0": "Red desert 0",
+  "block.nauvis_terrain.red_desert_1": "Red desert 1",
+  "block.nauvis_terrain.red_desert_2": "Red desert 2",
+  "block.nauvis_terrain.red_desert_3": "Red desert 3",
+  "block.nauvis_terrain.sand_1": "Sand 1",
+  "block.nauvis_terrain.sand_2": "Sand 2",
+  "block.nauvis_terrain.sand_3": "Sand 3",
+  "generator.nauvis_terrain.nauvis": "Nauvis"
+}

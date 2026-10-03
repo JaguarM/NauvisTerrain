@@ -166,7 +166,8 @@ class CompilerTest(unittest.TestCase):
         self.assertEqual(tree[-2:], [["const", 15.0], ["const", 9.0]])
 
 
-@unittest.skipUnless(gen_terrain.DATA_RAW.exists(), "Factorio's dump is absent (reference/README.md)")
+@unittest.skipUnless(gen_terrain.DATA_RAW.exists() and gen_terrain.LOCALE.exists(),
+                     "Factorio's dump or locale is absent (reference/README.md)")
 class DumpTest(unittest.TestCase):
     raw: dict
 
@@ -186,7 +187,8 @@ class DumpTest(unittest.TestCase):
         self.assertFalse({p["type"] for p in placed} & {"unit-spawner", "turret"})
 
     def test_the_program_is_finite_where_it_folded(self):
-        program = gen_terrain.build(self.raw, json.loads(gen_terrain.TERRAIN.read_text(encoding="utf-8")))
+        program = gen_terrain.build(self.raw, json.loads(gen_terrain.TERRAIN.read_text(encoding="utf-8")),
+                                    gen_terrain.load_locale(gen_terrain.LOCALE))
         for n in program["nodes"]:
             if n[0] == "const":
                 self.assertFalse(math.isnan(n[1]))

@@ -64,8 +64,8 @@ class CalibrationRun {
                 Terrain.Area area = new Terrain(evaluator).area(a.get(0).getAsInt(), a.get(1).getAsInt(),
                         a.get(2).getAsInt(), a.get(3).getAsInt());
                 Map<String, Integer> counts = new LinkedHashMap<>();
-                area.entities.forEach(p -> counts.merge(p.prototype().name(), 1, Integer::sum));
-                area.decoratives.forEach(p -> counts.merge(p.prototype().name(), 1, Integer::sum));
+                area.entities().forEach(p -> counts.merge(p.prototype().name(), 1, Integer::sum));
+                area.decoratives().forEach(p -> counts.merge(p.prototype().name(), 1, Integer::sum));
                 Files.writeString(Path.of("build/calibration/placed-" + seed + ".json"), new Gson().toJson(counts));
             }
         }

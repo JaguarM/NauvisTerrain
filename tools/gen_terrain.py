@@ -46,6 +46,7 @@ REPO = Path(__file__).resolve().parent.parent
 FACTORIO_VERSION = "2.0.77"
 DATA_RAW = REPO / "reference" / "factorio" / f"data-raw-{FACTORIO_VERSION}.json"
 TERRAIN = REPO / "data" / "terrain.json"
+LOCALE = REPO / "reference" / "factorio" / "locale" / "en" / "base.cfg"
 PROGRAM = REPO / "src" / "main" / "resources" / "nauvis_terrain" / "noise" / "nauvis.json"
 
 CLIMATE = ("elevation", "moisture", "aux", "temperature", "cliff_elevation", "cliffiness")
@@ -534,6 +535,32 @@ def collision_mask(raw: dict, type_name: str, proto: dict) -> dict:
     }
 
 
+def load_locale(path: Path) -> dict[str, dict[str, str]]:
+    """Factorio's English strings by section and key."""
+    sections: dict[str, dict[str, str]] = {}
+    current: dict[str, str] | None = None
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.startswith("[") and line.endswith("]"):
+            current = sections.setdefault(line[1:-1], {})
+        elif "=" in line and current is not None:
+            key, value = line.split("=", 1)
+            current[key] = value
+    return sections
+
+
+def title(proto: dict, kind: str, locale: dict) -> str:
+    """A prototype's English name: its `localised_name` key, or its own name in its kind's section."""
+    named = proto.get("localised_name")
+    if isinstance(named, list) and len(named) == 1 and isinstance(named[0], str) and "." in named[0]:
+        section, key = named[0].split(".", 1)
+    else:
+        section, key = f"{kind}-name", proto["name"]
+    found = locale.get(section, {}).get(key)
+    if found is None:
+        raise GenError(f"{proto['name']} has no English name under [{section}] {key}")
+    return found
+
+
 def colour(value, scale: float) -> list[int] | None:
     if value is None:
         return None
@@ -598,7 +625,7 @@ def parse_everything(raw: dict) -> int:
 
 # -- the program ------------------------------------------------------------------------------
 
-def build(raw: dict, terrain: dict, extra_roots: tuple[str, ...] = ()) -> dict:
+def build(raw: dict, terrain: dict, locale: dict, extra_roots: tuple[str, ...] = ()) -> dict:
     compiler = Compiler(raw, preset_properties(raw))
     roots: dict[str, int] = {}
     for name in CLIMATE + tuple(extra_roots):
@@ -616,6 +643,7 @@ def build(raw: dict, terrain: dict, extra_roots: tuple[str, ...] = ()) -> dict:
             "kind": p["kind"],
             "type": p["type"],
             "name": p["name"],
+            "title": title(proto, p["kind"], locale),
             "order": autoplace.get("order", ""),
             "control": autoplace.get("control"),
             "placement_density": autoplace.get("placement_density", 1),
@@ -623,6 +651,7 @@ def build(raw: dict, terrain: dict, extra_roots: tuple[str, ...] = ()) -> dict:
             "collision_box": proto.get("collision_box"),
             "collision_mask": collision_mask(raw, p["type"], proto),
             "map_color": colour(proto.get("map_color"), 255 if p["type"] == "resource" else 1),
+            "effect_color": colour(proto.get("effect_color"), 1),
         })
 
     nodes, roots = compact(compiler.graph, roots)
@@ -757,11 +786,14 @@ def main() -> int:
     if not DATA_RAW.exists():
         print(f"{DATA_RAW} is missing; reference/README.md says how to make it.", file=sys.stderr)
         return 2
+    if not LOCALE.exists():
+        print(f"{LOCALE} is missing; reference/README.md says how to make it.", file=sys.stderr)
+        return 2
     raw = json.loads(DATA_RAW.read_text(encoding="utf-8"))
     terrain = json.loads(TERRAIN.read_text(encoding="utf-8"))
     try:
         parsed = parse_everything(raw)
-        program = build(raw, terrain, tuple(r for r in args.roots.split(",") if r))
+        program = build(raw, terrain, load_locale(LOCALE), tuple(r for r in args.roots.split(",") if r))
     except GenError as e:
         print(f"gen_terrain: {e}", file=sys.stderr)
         return 1

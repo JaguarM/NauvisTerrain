@@ -23,7 +23,7 @@ final class MapPreview {
             }
         }
         int tree = terrain.evaluator.program.chartColors.get("tree");
-        for (Terrain.Placed p : area.entities) {
+        for (Terrain.Placed p : area.entities()) {
             Prototype proto = p.prototype();
             int px = p.x() - x0;
             int py = p.y() - y0;
