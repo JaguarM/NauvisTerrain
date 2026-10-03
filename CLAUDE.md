@@ -5,9 +5,9 @@ Factorio 2.0's Nauvis as a Minecraft 26.2 / NeoForge world type: its ground, wat
 rocks, decoratives and ore patches, laid out by Factorio's own noise expressions on a flat world,
 one tile to a block. `docs/NEXT.md` says what to pick up and how to run everything. Read
 `docs/PITFALLS.md` before writing code and `docs/API-26.2.md` before writing against any
-Minecraft API. `docs/ARCHITECTURE.md` is the rules the world is built to, `docs/NOISE.md`
-Factorio's noise language and how each built-in is made here, `docs/GAPS.md` what is deliberately
-missing.
+Minecraft API. `docs/ARCHITECTURE.md` is the rules the world is built to, `docs/FACTORIO.md` what
+Factorio's install and dump hold about Nauvis, `docs/NOISE.md` Factorio's noise language and how
+each built-in is made here, `docs/GAPS.md` what is deliberately missing.
 
 Non-negotiables
 ---------------
@@ -43,8 +43,8 @@ Factorio's files
 
 Factorio 2.0.77 is installed at `F:\Steam\steamapps\common\Factorio`, and everything in it may be
 read and derived from: the dump, the Lua under `data\`, the API docs under `doc-html\`, the
-graphics. Textures are made from Factorio's own graphics by a script. `reference/` is gitignored
-in full; `reference/README.md` says what goes there.
+graphics. Textures start from Factorio's own graphics. `reference/` is gitignored in full;
+`reference/README.md` says what goes there.
 
 The sibling
 -----------

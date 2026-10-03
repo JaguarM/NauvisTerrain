@@ -47,7 +47,7 @@ name it or its `default_enabled` is not false.
   `placement_density` attempts on a tile, taken in `order`; an attempt that would overlap
   something already placed fails. An ore's richness is its amount.
 - Cliffs: along the contours `cliff_elevation_0 + k · cliff_elevation_interval` of
-  `cliff_elevation`, on a 4 by 4 grid, where `cliffiness` allows. The interval is 40 over the
+  `cliff_elevation`, on a 4 by 4 grid, where `cliffiness` is above 0.5. The interval is 40 over the
   cliff control's frequency; continuity (`cliff_richness`) sets how unbroken the lines are.
 
 The world
@@ -65,6 +65,9 @@ The world
 - One biome, `nauvis_terrain:nauvis`, in `#minecraft:is_overworld` so biome modifiers aimed at
   the overworld reach it. It carries vanilla's underground ores except iron, copper and coal, and
   no surface features.
+- The chunk generator runs Minecraft's biome decoration after its own pass, so a feature that a
+  biome modifier adds lands here as anywhere in the overworld: vanilla's ores, a pack's oil or
+  water.
 
 What a pack changes
 -------------------

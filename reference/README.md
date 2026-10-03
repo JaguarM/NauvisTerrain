@@ -12,6 +12,9 @@ which writes `%APPDATA%/Factorio/script-output/data-raw-dump.json` and exits. Co
 the version in `data/base/info.json`. Only the mods in `mod-list.json` are in the dump; this mod
 wants `base` alone.
 
+`factorio/docs/` is the API pages the terrain needs, as text: `python tools/factorio_docs.py`.
+`factorio/previews/` holds Factorio's own map previews (`docs/FACTORIO.md`, the map preview).
+
 The rest is read where it is installed, under `F:/Steam/steamapps/common/Factorio`:
 
 | | |
