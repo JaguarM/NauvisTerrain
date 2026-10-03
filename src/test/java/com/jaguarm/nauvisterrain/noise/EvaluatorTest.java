@@ -59,6 +59,59 @@ class EvaluatorTest {
     }
 
     @Test
+    void basisNoiseHasFactoriosSpread() {
+        double sum = 0, sum2 = 0, sum4 = 0, max = 0;
+        int n = 0;
+        for (int j = 0; j < 300; j++) {
+            for (int i = 0; i < 300; i++) {
+                double v = BasisNoise.basis(77, 5, i + 0.37, j + 0.71, 1 / 16.0, 1, 0, 0);
+                sum += v;
+                sum2 += v * v;
+                sum4 += v * v * v * v;
+                max = Math.max(max, Math.abs(v));
+                n++;
+            }
+        }
+        double variance = sum2 / n - (sum / n) * (sum / n);
+        // The oracle's numbers for Factorio's own: a spread of 0.70, kurtosis 2.3, peaks near 1.75.
+        assertEquals(0.70, Math.sqrt(variance), 0.05);
+        assertEquals(2.3, sum4 / n / (variance * variance), 0.15);
+        assertTrue(max < 1.9 && max > 1.5, "peak " + max);
+    }
+
+    @Test
+    void multioctaveSumsKeepFactoriosShapes() {
+        double x = 13.7, y = -41.2;
+        // Variable persistence: octave k of n at input_scale / 2^k, weighted 2^n · p^(n-k), one field.
+        assertEquals(2.8 * BasisNoise.basis(9, 3, x, y, 1 / 32.0, 1, 0, 0) + 4 * BasisNoise.basis(9, 3, x, y, 1 / 64.0, 1, 0, 0),
+                BasisNoise.variablePersistence(9, 3, x, y, 0.7, 2, 1 / 16.0, 1, 0, 0), 1e-9);
+        // Quick: octave i at input_scale · m_in^i and output_scale · m_out^i, one field while seed0 does not carry.
+        assertEquals(BasisNoise.basis(9, 3, x, y, 1 / 16.0, 1, 0, 0) + 2 * BasisNoise.basis(9, 3, x, y, 1 / 32.0, 1, 0, 0),
+                BasisNoise.quickMultioctave(9, 3, x, y, 2, 1 / 16.0, 1, 0, 0, 0.5, 2, 1), 1e-9);
+        // Regular: as spread out as one octave, whatever the octaves and persistence.
+        double sum2 = 0;
+        int n = 0;
+        for (int j = 0; j < 200; j++) {
+            for (int i = 0; i < 200; i++) {
+                double v = BasisNoise.multioctave(11, 2, i * 3.1, j * 3.1, 0.7, 4, 1 / 8.0, 1, 0, 0);
+                sum2 += v * v;
+                n++;
+            }
+        }
+        assertEquals(0.70, Math.sqrt(sum2 / n), 0.07);
+    }
+
+    @Test
+    void theStartingLakeIsATileSeventyFiveTilesOut() {
+        for (long seed : new long[]{1, 123, 4_000_000_000L}) {
+            MapSettings.Point lake = new Evaluator(program, MapSettings.defaults(seed)).points("starting_lake_positions").get(0);
+            assertEquals(Math.floor(lake.x()), lake.x());
+            assertEquals(Math.floor(lake.y()), lake.y());
+            assertEquals(75, Math.hypot(lake.x(), lake.y()), 1.5);
+        }
+    }
+
+    @Test
     void oneSeedPairIsOneField() {
         double a = BasisNoise.basis(5, 9, 10.3, -7.1, 1 / 16.0, 1, 0, 0);
         assertEquals(a, BasisNoise.basis(5, 9, 10.3, -7.1, 1 / 16.0, 1, 0, 0));

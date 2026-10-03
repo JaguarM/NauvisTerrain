@@ -17,6 +17,10 @@ Reading Factorio
 - Numbers in the dump come as JSON numbers, booleans and strings; all three are expressions.
 - `map_color` comes as 0 to 255 for tiles, 0 to 1 for resources, and as an `{r, g, b}` table for
   the cliff.
+- A tile is sampled at its corner, not its centre. Sampling centres moves a few percent of
+  boundaries and still looks right.
+- Python's `id()` of a freed object is handed to the next one. A memo keyed on `id(scope)` answered
+  stone's `regular_density_at` with iron's; key on the object, which keeps it alive.
 
 Noise
 -----
@@ -28,3 +32,8 @@ Noise
   not only the picture.
 - Every `spot_noise` sharing a seed pair, region size and spacing draws from one series of
   candidate points. Give each ore its own series and the patches overlap.
+- A sample of a few seeds says little about a noise with features thousands of tiles wide:
+  `moisture_noise`'s coarsest octave is 6912 tiles across. Calibrate over many seeds and a wide
+  grid, or chase sampling error.
+- Regions anchored at 0,0 instead of centred on it split the starting area four ways, and each
+  starting ore becomes a swarm of weak blobs.

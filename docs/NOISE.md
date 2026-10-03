@@ -40,7 +40,7 @@ Every expression can read `x` and `y`, and these from the map settings:
 |---|---|
 | `map_seed`, `map_seed_small`, `map_seed_normalized` | the seed as a uint32, its low 16 bits, and scaled to 0 to 1 |
 | `starting_positions` | Factorio's spawn points; here one, at 0,0 |
-| `starting_lake_positions` | the engine places them from the starting positions and the seed; here one per start, 75 tiles from it in a direction the seed picks, as Factorio's preview of seed 123 has it |
+| `starting_lake_positions` | the engine places them from the starting positions and the seed: one per start, 75 tiles out in a direction its own random generator picks, floored to a tile. Here the direction is our hash of the seed |
 | `starting_area_radius`, `cliff_elevation_0`, `cliff_elevation_interval`, `cliff_smoothing`, `cliff_richness` | numbers from the settings |
 | `control:<name>:frequency` / `size` / `richness` | one per autoplace control (water, trees, rocks, the cliffs, each ore) |
 | `control:moisture:frequency` / `bias`, `control:aux:…`, `control:temperature:…` | the climate sliders |
@@ -55,14 +55,14 @@ What Nauvis's ground, cliffs, trees, rocks, decoratives and four ores reach, and
 |---|---|
 | `abs`, `min`, `max`, `clamp`, `if`, `floor`, `ceil`, `sqrt`, `log2`, `sin`, `cos`, `atan2` | exact |
 | `pow` and `^` | exact. Factorio's is an approximation; a tile on a threshold may differ |
-| `basis_noise` | gradient noise, our own hash. Zero wherever `x·input_scale` and `y·input_scale` are integers, as Factorio's is; amplitude and correlation measured from Factorio's output |
-| `multioctave_noise` | octaves of `basis_noise` at doubling scales, each `persistence` times as strong as the next larger; `input_scale` and `output_scale` are the finest octave's, and each coarser octave has half the input scale and twice the output scale before persistence. Each octave its own `seed1`. Spacing and normalisation checked against the oracle |
-| `quick_multioctave_noise` | the same with its own `octave_input_scale_multiplier`, `octave_output_scale_multiplier` and `octave_seed0_shift` |
-| `variable_persistence_multioctave_noise` | `multioctave_noise` with `persistence` an expression |
+| `basis_noise` | Factorio's construction (`FACTORIO.md`, the oracle) on our own gradients: each of a cell's four corners adds `(1 - d²)³ · (g · d)`, `g` of length 4.2 in a direction our hash of the seeds and the corner picks from 1024 |
+| `multioctave_noise` | octave `k` of `n`, from the coarsest, at `input_scale / 2^(n-1-k)` and `output_scale · p^k / sqrt(Σ p^2j)`; the finest is `basis_noise` of the same seeds, each coarser one a field of its own set off the finest one's lattice |
+| `quick_multioctave_noise` | octave `i` at `input_scale · m_in^i` and `output_scale · m_out^i`, all one field until `seed0 + i · octave_seed0_shift` carries past a multiple of 256 |
+| `variable_persistence_multioctave_noise` | octave `k` from 1 to `n` at `input_scale / 2^k` and `output_scale · 2^n · p^(n-k)`, all one field, `p` an expression |
 | `distance_from_nearest_point` (and `_x`, `_y`) | exact |
-| `expression_in_range` | per Factorio's FFF #282: the distance inside the box of ranges, the least over its dimensions, times `peak_multiplier` and capped at `peak_maximum`; checked against the oracle |
-| `random_penalty` | subtracts a value in `[0, amplitude)` from `source` when `source > 0`; our own hash of `x`, `y`, `seed` and the map seed |
-| `spot_noise` | the documented algorithm with our own candidate points: square regions of `region_size` from 0,0, candidates drawn at random in the region and redrawn up to eight times while nearer than `suggested_minimum_candidate_point_spacing` to an earlier one, the region's target the mean density at its candidates times its area, spots taken most favourable first until the target is met (the last cut to fit when `hard_region_target_quantity`), each a cone of `3 · quantity / (π · radius²)` peak falling to the basement at `maximum_spot_basement_radius` |
+| `expression_in_range` | exact: the distance inside the box of ranges, the least over its dimensions, times `peak_multiplier` and capped at `peak_maximum` |
+| `random_penalty` | subtracts a value in `[0, amplitude)` from `source` when `source > 0`; our own hash of `x`, `y` and `seed`, not of the map seed, as in Factorio |
+| `spot_noise` | the documented algorithm with our own candidate points: square regions of `region_size` centred on its multiples, so the one at 0,0 holds the starting area; candidates drawn at random in the region and redrawn up to eight times while nearer than `suggested_minimum_candidate_point_spacing` to an earlier one; the region's target the mean density at its candidates times its area; spots taken most favourable first until the target is met, the last cut to fit when `hard_region_target_quantity` and its radius cut by the cube root of that; each a cone of `3 · quantity / (π · radius²)` peak falling to the basement at `maximum_spot_basement_radius` |
 
 Not reached by Nauvis's terrain and so not written: `voronoi_*`, `multisample`, `terrace`, `ridge`,
 `pow_precise`. A string is a number wherever a number is wanted, as a `seed1` takes it
@@ -75,7 +75,7 @@ What our noise has to share with Factorio's
   reading one layer stay correlated.
 - Its statistics: the value distribution and the feature size at a given `input_scale`. The
   tiles, trees and cliffs are thresholds on these values, so a noise that swings wider moves every
-  boundary. The oracle measures Factorio's.
+  boundary. The oracle measured Factorio's, and ours matches it (`FACTORIO.md`).
 - `spot_noise` calls with the same `seed0`, `seed1`, `region_size` and
   `suggested_minimum_candidate_point_spacing` draw one series of candidate points, and
   `skip_offset` and `skip_span` deal it out between them. That is what keeps the ores apart.

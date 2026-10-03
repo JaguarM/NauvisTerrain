@@ -147,6 +147,13 @@ class CompilerTest(unittest.TestCase):
         with self.assertRaises(GenError):
             compile_one("a", expressions={"a": "b + 1", "b": "a"})
 
+    def test_a_local_function_answers_for_its_own_call(self):
+        functions = {"f": {"parameters": ["a"], "expression": "g(x)",
+                           "local_functions": {"g": {"parameters": ["b"], "expression": "a * b"}}}}
+        c = compiler(functions=functions)
+        results = {json.dumps(node(c, c.expression(f"f({k})", None))) for k in range(2, 40)}
+        self.assertEqual(len(results), 38)
+
     def test_a_property_is_one_node_per_value(self):
         self.assertEqual(compile_one("e", expressions={"e": "x", "e2": "y"}, properties={"e": ["e2", 1]}),
                          ["property", "e", {"": X, "e2": Y, "1": ["const", 1.0]}])

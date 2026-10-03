@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Safe to use from several threads at once.
  */
 public final class Evaluator {
-    /** How far from its starting position the engine's starting lake lies, in tiles. */
+    /** How far from its starting position the engine's starting lake lies, before it is floored to a tile. */
     static final double STARTING_LAKE_DISTANCE = 75;
 
     public final NoiseProgram program;
@@ -126,14 +126,14 @@ public final class Evaluator {
         return n;
     }
 
-    /** The engine's starting lakes: one per starting position, in a direction the seed picks. */
+    /** The engine's starting lakes: one per starting position, in a direction the seed picks, on a tile corner. */
     private static List<Point> startingLakes(MapSettings settings) {
         List<Point> lakes = new ArrayList<>();
         for (int i = 0; i < settings.startingPositions().size(); i++) {
             Point start = settings.startingPositions().get(i);
             double angle = 2 * Math.PI * Hash.unit(Hash.mix(settings.seed(), i));
-            lakes.add(new Point(start.x() + STARTING_LAKE_DISTANCE * Math.cos(angle),
-                    start.y() + STARTING_LAKE_DISTANCE * Math.sin(angle)));
+            lakes.add(new Point(Math.floor(start.x() + STARTING_LAKE_DISTANCE * Math.cos(angle)),
+                    Math.floor(start.y() + STARTING_LAKE_DISTANCE * Math.sin(angle))));
         }
         return List.copyOf(lakes);
     }
@@ -393,8 +393,11 @@ public final class Evaluator {
                 long s0 = seed(a[3]), s1 = seed(a[4]);
                 int octaves = (int) u(a[5]);
                 double in = u(a[6]), os = u(a[7]), ox = u(a[8]), oy = u(a[9]);
+                boolean variable = node.op() == Op.VARIABLE_PERSISTENCE_MULTIOCTAVE_NOISE;
                 for (int i = 0; i < n; i++) {
-                    out[i] = (float) BasisNoise.multioctave(s0, s1, x[i], y[i], p[i], octaves, in, os, ox, oy);
+                    out[i] = (float) (variable
+                            ? BasisNoise.variablePersistence(s0, s1, x[i], y[i], p[i], octaves, in, os, ox, oy)
+                            : BasisNoise.multioctave(s0, s1, x[i], y[i], p[i], octaves, in, os, ox, oy));
                 }
             }
             case QUICK_MULTIOCTAVE_NOISE -> {
@@ -435,13 +438,11 @@ public final class Evaluator {
                 double amplitude = u(a[4]);
                 for (int i = 0; i < n; i++) {
                     out[i] = source[i] > 0
-                            ? (float) (source[i] - amplitude * RandomPenalty.unit(settings.seed(), seed, x[i], y[i]))
+                            ? (float) (source[i] - amplitude * RandomPenalty.unit(seed, x[i], y[i]))
                             : source[i];
                 }
             }
-            case SPOT_NOISE -> spotNoise.evaluate(new SpotNoise.Call(id, target[a[2]], target[a[3]], target[a[4]],
-                    target[a[5]], seed(a[6]), seed(a[7]), u(a[8]), u(a[9]), u(a[10]), (int) u(a[11]), (int) u(a[12]),
-                    u(a[13]) > 0, (int) u(a[14]), u(a[15])), v(a[0], values, n), v(a[1], values, n), out);
+            case SPOT_NOISE -> spotNoise.evaluate(spotCall(id), v(a[0], values, n), v(a[1], values, n), out);
             case EXPRESSION_IN_RANGE -> {
                 int dims = (a.length - 2) / 3;
                 double multiplier = u(a[0]), maximum = u(a[1]);
@@ -461,6 +462,13 @@ public final class Evaluator {
             default -> throw new IllegalStateException(node.op() + " is not computed per position");
         }
         return out;
+    }
+
+    /** A `spot_noise` node's constant parameters. */
+    private SpotNoise.Call spotCall(int id) {
+        int[] a = nodes[id].args();
+        return new SpotNoise.Call(id, target[a[2]], target[a[3]], target[a[4]], target[a[5]], seed(a[6]), seed(a[7]),
+                u(a[8]), u(a[9]), u(a[10]), (int) u(a[11]), (int) u(a[12]), u(a[13]) > 0, (int) u(a[14]), u(a[15]));
     }
 
     private float[] v(int arg, float[][] values, int n) {

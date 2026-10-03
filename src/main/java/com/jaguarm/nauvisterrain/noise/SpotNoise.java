@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * `spot_noise`: conical spots chosen per square region from a series of candidate points, the
  * value at a position the highest spot there or the basement (docs/NOISE.md, the built-ins).
+ * A region is centred on a multiple of its size, so the one at 0,0 holds the starting area.
  */
 final class SpotNoise {
     /** How often a candidate is drawn again for being nearer than the spacing to an earlier one. */
@@ -43,10 +44,10 @@ final class SpotNoise {
             double x = xs[i];
             double y = ys[i];
             double best = call.basement;
-            long rx0 = (long) Math.floor((x - reach) / size);
-            long rx1 = (long) Math.floor((x + reach) / size);
-            long ry0 = (long) Math.floor((y - reach) / size);
-            long ry1 = (long) Math.floor((y + reach) / size);
+            long rx0 = (long) Math.floor((x - reach) / size + 0.5);
+            long rx1 = (long) Math.floor((x + reach) / size + 0.5);
+            long ry0 = (long) Math.floor((y - reach) / size + 0.5);
+            long ry1 = (long) Math.floor((y + reach) / size + 0.5);
             for (long rx = rx0; rx <= rx1; rx++) {
                 for (long ry = ry0; ry <= ry1; ry++) {
                     for (Spot spot : spots(call, rx, ry)) {
@@ -61,7 +62,7 @@ final class SpotNoise {
         }
     }
 
-    Spot[] spots(Call call, long rx, long ry) {
+    private Spot[] spots(Call call, long rx, long ry) {
         Key key = new Key(call.node, rx, ry);
         Spot[] found = regions.get(key);
         if (found == null) {
@@ -114,7 +115,10 @@ final class SpotNoise {
                 continue;
             }
             if (call.hardTarget && total + quantity > target) {
-                quantity = target - total;
+                // A spot cut to fit keeps radius in proportion to the cube root of its quantity.
+                double cut = target - total;
+                radius *= Math.cbrt(cut / quantity);
+                quantity = cut;
             }
             total += quantity;
             spots.add(new Spot(xs[k], ys[k], radius, 3 * quantity / (Math.PI * radius * radius)));
@@ -137,8 +141,8 @@ final class SpotNoise {
             double x = 0;
             double y = 0;
             for (int attempt = 0; attempt < SPACING_TRIES; attempt++) {
-                x = (rx + random.nextDouble()) * call.regionSize;
-                y = (ry + random.nextDouble()) * call.regionSize;
+                x = (rx - 0.5 + random.nextDouble()) * call.regionSize;
+                y = (ry - 0.5 + random.nextDouble()) * call.regionSize;
                 if (clear(points, i, x, y, spacing2)) {
                     break;
                 }

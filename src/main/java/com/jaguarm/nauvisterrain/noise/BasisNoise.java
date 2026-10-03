@@ -1,22 +1,23 @@
 package com.jaguarm.nauvisterrain.noise;
 
 /**
- * Gradient noise standing in for Factorio's `basis_noise`, and the multioctave sums built from it
- * (docs/NOISE.md, the built-ins). Zero wherever the scaled coordinates are integers.
+ * Factorio's `basis_noise` and its multioctave sums, built as the oracle measured them
+ * (docs/NOISE.md, the built-ins) on our own gradients: zero on the lattice, each of a cell's four
+ * corners adding its gradient's dot product with the offset, weighted by `(1 - d²)³`.
  */
 public final class BasisNoise {
-    /** Scales the raw gradient noise, whose peak is about 0.7, to Factorio's range. */
-    static final double AMPLITUDE = Math.sqrt(2);
+    /** Every gradient's length. */
+    static final double GRADIENT = 4.2;
 
-    private static final int GRADIENTS = 256;
-    private static final double[] GRADIENT_X = new double[GRADIENTS];
-    private static final double[] GRADIENT_Y = new double[GRADIENTS];
+    private static final int DIRECTIONS = 1024;
+    private static final double[] GRADIENT_X = new double[DIRECTIONS];
+    private static final double[] GRADIENT_Y = new double[DIRECTIONS];
 
     static {
-        for (int i = 0; i < GRADIENTS; i++) {
-            double angle = 2 * Math.PI * i / GRADIENTS;
-            GRADIENT_X[i] = Math.cos(angle);
-            GRADIENT_Y[i] = Math.sin(angle);
+        for (int i = 0; i < DIRECTIONS; i++) {
+            double angle = 2 * Math.PI * (i + 0.5) / DIRECTIONS;
+            GRADIENT_X[i] = GRADIENT * Math.cos(angle);
+            GRADIENT_Y[i] = GRADIENT * Math.sin(angle);
         }
     }
 
@@ -25,21 +26,17 @@ public final class BasisNoise {
 
     /** One octave at already scaled coordinates. */
     public static double sample(long seed0, long seed1, double x, double y) {
-        double fx0 = Math.floor(x);
-        double fy0 = Math.floor(y);
-        long x0 = (long) fx0;
-        long y0 = (long) fy0;
-        double dx = x - fx0;
-        double dy = y - fy0;
-        double n00 = corner(seed0, seed1, x0, y0, dx, dy);
-        double n10 = corner(seed0, seed1, x0 + 1, y0, dx - 1, dy);
-        double n01 = corner(seed0, seed1, x0, y0 + 1, dx, dy - 1);
-        double n11 = corner(seed0, seed1, x0 + 1, y0 + 1, dx - 1, dy - 1);
-        double u = fade(dx);
-        double v = fade(dy);
-        double top = n00 + u * (n10 - n00);
-        double bottom = n01 + u * (n11 - n01);
-        return (top + v * (bottom - top)) * AMPLITUDE;
+        double fx = Math.floor(x);
+        double fy = Math.floor(y);
+        long x0 = (long) fx;
+        long y0 = (long) fy;
+        double dx = x - fx;
+        double dy = y - fy;
+        long field = Hash.mix(seed0, seed1);
+        return corner(field, x0, y0, dx, dy)
+                + corner(field, x0 + 1, y0, dx - 1, dy)
+                + corner(field, x0, y0 + 1, dx, dy - 1)
+                + corner(field, x0 + 1, y0 + 1, dx - 1, dy - 1);
     }
 
     /** `basis_noise`. */
@@ -49,26 +46,57 @@ public final class BasisNoise {
     }
 
     /**
-     * `multioctave_noise` and its variable-persistence twin. `input_scale` is the finest octave's;
-     * each coarser one has half the input scale and twice the output scale, and every octave but
-     * the coarsest is `persistence` times the next coarser in amplitude.
+     * `multioctave_noise`: octave `k` of `n`, counted from the coarsest, at `input_scale / 2^(n-1-k)`
+     * and `output_scale · p^k / sqrt(Σ p^2j)`, so the sum keeps one octave's spread. The finest is
+     * `basis_noise` with the same seeds; each coarser one is a field of its own, moved off the
+     * finest one's lattice.
      */
     public static double multioctave(long seed0, long seed1, double x, double y, double persistence, int octaves,
                                      double inputScale, double outputScale, double offsetX, double offsetY) {
+        double norm = 0;
+        double weight = 1;
+        for (int k = 0; k < octaves; k++) {
+            norm += weight * weight;
+            weight *= persistence;
+        }
+        double amplitude = outputScale / Math.sqrt(norm);
         double sum = 0;
-        double in = inputScale / (1L << (octaves - 1));
-        double out = outputScale * (1L << (octaves - 1));
-        for (int octave = 0; octave < octaves; octave++) {
-            sum += sample(seed0, Hash.mix(seed1, octave), (x + offsetX) * in, (y + offsetY) * in) * out;
+        double in = inputScale / Math.pow(2, octaves - 1);
+        for (int k = 0; k < octaves; k++) {
+            int coarseness = octaves - 1 - k;
+            double sx = (x + offsetX) * in;
+            double sy = (y + offsetY) * in;
+            sum += coarseness == 0
+                    ? sample(seed0, seed1, sx, sy) * amplitude
+                    : sample(seed0, Hash.mix(seed1, coarseness), sx + 0.5 * coarseness, sy + 0.25 * coarseness) * amplitude;
             in *= 2;
-            out *= persistence;
+            amplitude *= persistence;
         }
         return sum;
     }
 
     /**
-     * `quick_multioctave_noise`: octave `i` at `input_scale · m_in^i` and `output_scale · m_out^i`,
-     * with `seed0` moved by `i · octave_seed0_shift`.
+     * `variable_persistence_multioctave_noise`: octave `k` from 1 to `n` at `input_scale / 2^k` and
+     * `output_scale · 2^n · p^(n-k)`, all of one field.
+     */
+    public static double variablePersistence(long seed0, long seed1, double x, double y, double persistence,
+                                             int octaves, double inputScale, double outputScale,
+                                             double offsetX, double offsetY) {
+        double sum = 0;
+        double in = inputScale / 2;
+        double amplitude = outputScale * Math.pow(2, octaves) * Math.pow(persistence, octaves - 1);
+        for (int k = 1; k <= octaves; k++) {
+            sum += sample(seed0, seed1, (x + offsetX) * in, (y + offsetY) * in) * amplitude;
+            in /= 2;
+            amplitude /= persistence;
+        }
+        return sum;
+    }
+
+    /**
+     * `quick_multioctave_noise`: octave `i` at `input_scale · m_in^i` and `output_scale · m_out^i`.
+     * Its `seed0` moves by `octave_seed0_shift` each octave, and as in Factorio that changes the
+     * field only when it carries past a multiple of 256.
      */
     public static double quickMultioctave(long seed0, long seed1, double x, double y, int octaves, double inputScale,
                                           double outputScale, double offsetX, double offsetY,
@@ -77,19 +105,20 @@ public final class BasisNoise {
         double in = inputScale;
         double out = outputScale;
         for (int octave = 0; octave < octaves; octave++) {
-            sum += sample((seed0 + octave * seed0Shift) & 0xFFFFFFFFL, seed1, (x + offsetX) * in, (y + offsetY) * in) * out;
+            long carried = ((seed0 & 0xFF) + octave * seed0Shift) >> 8;
+            sum += sample((seed0 + (carried << 8)) & 0xFFFFFFFFL, seed1, (x + offsetX) * in, (y + offsetY) * in) * out;
             in *= inputMultiplier;
             out *= outputMultiplier;
         }
         return sum;
     }
 
-    private static double corner(long seed0, long seed1, long x, long y, double dx, double dy) {
-        int g = (int) (Hash.of(seed0, seed1, x, y) & (GRADIENTS - 1));
-        return GRADIENT_X[g] * dx + GRADIENT_Y[g] * dy;
-    }
-
-    private static double fade(double t) {
-        return t * t * t * (t * (t * 6 - 15) + 10);
+    private static double corner(long field, long x, long y, double dx, double dy) {
+        double falloff = 1 - dx * dx - dy * dy;
+        if (falloff <= 0) {
+            return 0;
+        }
+        int g = (int) (Hash.mix(field, x * 0x632BE59BD9B4E019L + y) >>> 54);
+        return falloff * falloff * falloff * (GRADIENT_X[g] * dx + GRADIENT_Y[g] * dy);
     }
 }

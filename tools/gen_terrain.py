@@ -468,7 +468,8 @@ class Compiler:
         if missing:
             raise GenError(f"{where}: {name} needs {missing}")
         bound = {p: self.tree(given[p], scope) for p in params}
-        key = (id(definition), id(definition_scope), tuple(bound[p] for p in params))
+        # The scope itself, not id(scope): docs/PITFALLS.md.
+        key = (id(definition), definition_scope, tuple(bound[p] for p in params))
         if key not in self.inlined:
             inner = Scope(definition_scope, name, params=bound,
                           local_expressions=definition.get("local_expressions"),
@@ -597,10 +598,10 @@ def parse_everything(raw: dict) -> int:
 
 # -- the program ------------------------------------------------------------------------------
 
-def build(raw: dict, terrain: dict) -> dict:
+def build(raw: dict, terrain: dict, extra_roots: tuple[str, ...] = ()) -> dict:
     compiler = Compiler(raw, preset_properties(raw))
     roots: dict[str, int] = {}
-    for name in CLIMATE:
+    for name in CLIMATE + tuple(extra_roots):
         roots[name] = compiler.name(name, None)
     prototypes = []
     for p in placed(raw, terrain):
@@ -748,6 +749,9 @@ def main() -> int:
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--check", action="store_true", help="fail if the program on disk differs")
     mode.add_argument("--write", action="store_true", help="write the program")
+    mode.add_argument("--calibration", metavar="FILE",
+                      help="write a program with more roots to FILE, for tools/calibrate.py")
+    parser.add_argument("--roots", default="", help="the extra roots, comma-separated")
     args = parser.parse_args()
 
     if not DATA_RAW.exists():
@@ -757,14 +761,17 @@ def main() -> int:
     terrain = json.loads(TERRAIN.read_text(encoding="utf-8"))
     try:
         parsed = parse_everything(raw)
-        program = build(raw, terrain)
+        program = build(raw, terrain, tuple(r for r in args.roots.split(",") if r))
     except GenError as e:
         print(f"gen_terrain: {e}", file=sys.stderr)
         return 1
     text = render(program)
     print(summary(program, parsed))
 
-    if args.write:
+    if args.calibration:
+        Path(args.calibration).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.calibration).write_text(text, encoding="utf-8", newline="\n")
+    elif args.write:
         PROGRAM.parent.mkdir(parents=True, exist_ok=True)
         PROGRAM.write_text(text, encoding="utf-8", newline="\n")
         print(f"wrote {PROGRAM.relative_to(REPO)}")

@@ -100,8 +100,8 @@ dependencies {
     testImplementation platform('org.junit:junit-bom:5.11.3')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-    // The game puts Gson on the classpath at run time; the plain tests need it put there.
-    testRuntimeOnly 'com.google.code.gson:gson:2.14.0'
+    // The game puts Gson on the classpath; the plain tests need it put there themselves.
+    testImplementation 'com.google.code.gson:gson:2.14.0'
 }
 
 // The noise package is plain Java (CLAUDE.md, rule 6), so its tests are plain JUnit.
