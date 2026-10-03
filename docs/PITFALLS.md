@@ -22,6 +22,17 @@ Reading Factorio
 - Python's `id()` of a freed object is handed to the next one. A memo keyed on `id(scope)` answered
   stone's `regular_density_at` with iron's; key on the object, which keeps it alive.
 
+Other mods
+----------
+
+- In development a mod runs from two folders, and Dynamic Trees reads `trees/` only from the
+  first, the classes: `devTreePack` copies it there. A treepack that works in the jar does
+  nothing in `runClient` without it.
+- Dynamic Trees cancels a tree only inside a `minecraft:random_selector`; a bare `minecraft:tree`
+  feature in a biome's list is left standing.
+- Distant Horizons 3.3.3 crashes a gametest server, taking it for a dedicated one; the gametest
+  run has its own `run/gametest`, without the mods dropped into `run/mods`.
+
 Noise
 -----
 

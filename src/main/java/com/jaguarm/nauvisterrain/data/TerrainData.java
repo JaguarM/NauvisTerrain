@@ -76,6 +76,7 @@ public final class TerrainData {
     @SubscribeEvent
     static void client(GatherDataEvent.Client event) {
         event.createProvider(Models::new);
+        event.createProvider(DynamicTreesData.Models::new);
         event.createProvider((PackOutput output) -> new Lang(output));
     }
 
@@ -85,6 +86,7 @@ public final class TerrainData {
                 output, Set.of(), List.of(new LootTableProvider.SubProviderEntry(Loot::new, LootContextParamSets.BLOCK)), lookup));
         event.createProvider(Tags::new);
         event.createProvider(Worldgen::new);
+        event.createProvider(DynamicTreesData.Pack::new);
     }
 
     private static List<Prototype> groundTiles() {
@@ -137,6 +139,9 @@ public final class TerrainData {
             }
             addBlock(TerrainBlocks.CLIFF, Nauvis.program().cliff.title());
             add("generator.nauvis_terrain.nauvis", "Nauvis");
+            for (Prototype tile : DynamicTreesData.soils()) {
+                add("block.nauvis_terrain.rooty_" + TerrainBlocks.id(tile.name()), "Rooty " + tile.title().toLowerCase(java.util.Locale.ROOT));
+            }
             add("nauvis_terrain.map.title", "Nauvis map generator");
             add("nauvis_terrain.map.preset", "Preset");
             add("nauvis_terrain.map.custom", "Custom");

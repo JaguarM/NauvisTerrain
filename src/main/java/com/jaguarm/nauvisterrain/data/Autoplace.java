@@ -15,41 +15,42 @@ import java.util.Map;
 /**
  * What stands for each of Factorio's trees, rocks and decoratives: a configured feature built of
  * vanilla blocks, and a placed feature under the Factorio name that puts it where Factorio does
- * (`nauvis_terrain:autoplace`). Trees are vanilla `minecraft:tree` features of vanilla logs and
- * leaves, so mods that act on vanilla trees act on these.
+ * (`nauvis_terrain:autoplace`). A living tree is a vanilla `minecraft:tree` of vanilla logs and
+ * leaves inside a `minecraft:random_selector`, as vanilla lists its trees, so mods that replace
+ * vanilla trees (Dynamic Trees) find and replace these.
  */
 final class Autoplace {
     private Autoplace() {
     }
 
-    /** A tree's log, leaves (null for a bare one) and shape. */
-    private record Tree(String log, String leaves, Shape shape) {
+    /** A tree's log, leaves (null for a bare one), shape, and the Dynamic Trees species nearest it. */
+    private record Tree(String log, String leaves, Shape shape, String species) {
     }
 
     private enum Shape { SPRUCE, OAK, BUSHY, BIG, SPARSE, STUMP, BARE, FORKED, FALLEN }
 
     /** Factorio's conifers are spruce-like; its broadleaves oak-like, each in the vanilla leaves nearest its colour. */
     private static final Map<String, Tree> TREES = Map.ofEntries(
-            Map.entry("tree-01", new Tree("spruce_log", "spruce_leaves", Shape.SPRUCE)),
-            Map.entry("tree-02", new Tree("spruce_log", "azalea_leaves", Shape.SPRUCE)),
-            Map.entry("tree-02-red", new Tree("spruce_log", "cherry_leaves", Shape.SPRUCE)),
-            Map.entry("tree-03", new Tree("oak_log", "flowering_azalea_leaves", Shape.OAK)),
-            Map.entry("tree-04", new Tree("oak_log", "oak_leaves", Shape.OAK)),
-            Map.entry("tree-05", new Tree("oak_log", "jungle_leaves", Shape.BUSHY)),
-            Map.entry("tree-06", new Tree("acacia_log", "acacia_leaves", Shape.SPARSE)),
-            Map.entry("tree-06-brown", new Tree("acacia_log", "pale_oak_leaves", Shape.SPARSE)),
-            Map.entry("tree-07", new Tree("oak_log", "oak_leaves", Shape.OAK)),
-            Map.entry("tree-08", new Tree("oak_log", "birch_leaves", Shape.OAK)),
-            Map.entry("tree-08-brown", new Tree("dark_oak_log", "dark_oak_leaves", Shape.OAK)),
-            Map.entry("tree-08-red", new Tree("dark_oak_log", "cherry_leaves", Shape.OAK)),
-            Map.entry("tree-09", new Tree("dark_oak_log", "dark_oak_leaves", Shape.BIG)),
-            Map.entry("tree-09-brown", new Tree("dark_oak_log", "pale_oak_leaves", Shape.BIG)),
-            Map.entry("tree-09-red", new Tree("dark_oak_log", "cherry_leaves", Shape.BIG)),
-            Map.entry("dry-tree", new Tree("oak_log", null, Shape.STUMP)),
-            Map.entry("dead-grey-trunk", new Tree("pale_oak_log", null, Shape.BARE)),
-            Map.entry("dead-tree-desert", new Tree("acacia_log", null, Shape.FORKED)),
-            Map.entry("dry-hairy-tree", new Tree("birch_log", null, Shape.BARE)),
-            Map.entry("dead-dry-hairy-tree", new Tree("dark_oak_log", null, Shape.FALLEN)));
+            Map.entry("tree-01", new Tree("spruce_log", "spruce_leaves", Shape.SPRUCE, "spruce")),
+            Map.entry("tree-02", new Tree("spruce_log", "azalea_leaves", Shape.SPRUCE, "spruce")),
+            Map.entry("tree-02-red", new Tree("spruce_log", "cherry_leaves", Shape.SPRUCE, "cherry")),
+            Map.entry("tree-03", new Tree("oak_log", "flowering_azalea_leaves", Shape.OAK, "oak")),
+            Map.entry("tree-04", new Tree("oak_log", "oak_leaves", Shape.OAK, "oak")),
+            Map.entry("tree-05", new Tree("oak_log", "jungle_leaves", Shape.BUSHY, "jungle")),
+            Map.entry("tree-06", new Tree("acacia_log", "acacia_leaves", Shape.SPARSE, "acacia")),
+            Map.entry("tree-06-brown", new Tree("acacia_log", "pale_oak_leaves", Shape.SPARSE, "acacia")),
+            Map.entry("tree-07", new Tree("oak_log", "oak_leaves", Shape.OAK, "oak")),
+            Map.entry("tree-08", new Tree("oak_log", "birch_leaves", Shape.OAK, "birch")),
+            Map.entry("tree-08-brown", new Tree("dark_oak_log", "dark_oak_leaves", Shape.OAK, "dark_oak")),
+            Map.entry("tree-08-red", new Tree("dark_oak_log", "cherry_leaves", Shape.OAK, "cherry")),
+            Map.entry("tree-09", new Tree("dark_oak_log", "dark_oak_leaves", Shape.BIG, "dark_oak")),
+            Map.entry("tree-09-brown", new Tree("dark_oak_log", "pale_oak_leaves", Shape.BIG, "pale_oak")),
+            Map.entry("tree-09-red", new Tree("dark_oak_log", "cherry_leaves", Shape.BIG, "cherry")),
+            Map.entry("dry-tree", new Tree("oak_log", null, Shape.STUMP, null)),
+            Map.entry("dead-grey-trunk", new Tree("pale_oak_log", null, Shape.BARE, null)),
+            Map.entry("dead-tree-desert", new Tree("acacia_log", null, Shape.FORKED, null)),
+            Map.entry("dry-hairy-tree", new Tree("birch_log", null, Shape.BARE, null)),
+            Map.entry("dead-dry-hairy-tree", new Tree("dark_oak_log", null, Shape.FALLEN, null)));
 
     /** A rock's blocks: stone, with as much coal ore as stone in the huge one, as Factorio's huge rock yields. */
     private static final Map<String, JsonObject> ROCKS = Map.of(
@@ -57,7 +58,7 @@ final class Autoplace {
             "big-rock", simple(state("minecraft:stone")),
             "big-sand-rock", simple(state("minecraft:sandstone")));
 
-    /** The vanilla plant nearest each of Factorio's plant decoratives; its small rocks are stone buttons. */
+    /** The vanilla plant nearest each of Factorio's plant decoratives; its small rocks are stone. */
     private static final Map<String, String> PLANTS = Map.ofEntries(
             Map.entry("green-carpet-grass", "short_grass"), Map.entry("green-small-grass", "short_grass"),
             Map.entry("green-hairy-grass", "tall_grass"), Map.entry("brown-carpet-grass", "short_dry_grass"),
@@ -69,9 +70,9 @@ final class Autoplace {
             Map.entry("green-croton", "large_fern"), Map.entry("red-croton", "dead_bush"), Map.entry("garballo", "bush"),
             Map.entry("garballo-mini-dry", "dead_bush"), Map.entry("green-bush-mini", "bush"),
             Map.entry("green-desert-bush", "bush"), Map.entry("red-desert-bush", "dead_bush"),
-            Map.entry("white-desert-bush", "dead_bush"), Map.entry("medium-rock", "stone_button"),
-            Map.entry("small-rock", "stone_button"), Map.entry("tiny-rock", "stone_button"),
-            Map.entry("medium-sand-rock", "stone_button"), Map.entry("small-sand-rock", "stone_button"));
+            Map.entry("white-desert-bush", "dead_bush"), Map.entry("medium-rock", "stone"),
+            Map.entry("small-rock", "stone"), Map.entry("tiny-rock", "stone"),
+            Map.entry("medium-sand-rock", "stone"), Map.entry("small-sand-rock", "stone"));
 
     /** The tile each of Factorio's decals paints the ground with. */
     private static final Map<String, String> DECALS = Map.of(
@@ -87,6 +88,11 @@ final class Autoplace {
         things.stream().filter(p -> p.type().equals("simple-entity")).forEach(out::add);
         things.stream().filter(p -> p.type().equals("tree")).forEach(out::add);
         return out;
+    }
+
+    /** The Dynamic Trees species that stands for a tree, or null for a bare one, which it leaves alone. */
+    static String species(Prototype p) {
+        return require(TREES, p).species;
     }
 
     static String id(Prototype p) {
@@ -141,17 +147,8 @@ final class Autoplace {
             config.addProperty("half_height", 0);
             return feature("minecraft:disk", config);
         }
-        String plant = require(PLANTS, p);
-        JsonObject state = state("minecraft:" + plant);
-        if (plant.endsWith("_button")) {
-            JsonObject properties = new JsonObject();
-            properties.addProperty("face", "floor");
-            properties.addProperty("facing", "north");
-            properties.addProperty("powered", "false");
-            state.add("Properties", properties);
-        }
         JsonObject config = new JsonObject();
-        config.add("to_place", simple(state));
+        config.add("to_place", simple(state("minecraft:" + require(PLANTS, p))));
         return feature("minecraft:simple_block", config);
     }
 
@@ -219,7 +216,23 @@ final class Autoplace {
         config.add("minimum_size", minimum);
         config.add("trunk_placer", trunk);
         config.add("trunk_provider", simple(log(tree.log)));
-        return feature("minecraft:tree", config);
+        JsonObject vanilla = feature("minecraft:tree", config);
+        if (tree.leaves == null) {
+            return vanilla;
+        }
+        // One tree, always: a selector of one with the same tree as its default.
+        JsonObject placed = new JsonObject();
+        placed.add("feature", vanilla);
+        placed.add("placement", new JsonArray());
+        JsonObject entry = new JsonObject();
+        entry.addProperty("chance", 1.0);
+        entry.add("feature", placed);
+        JsonArray features = new JsonArray();
+        features.add(entry);
+        JsonObject selector = new JsonObject();
+        selector.add("default", placed);
+        selector.add("features", features);
+        return feature("minecraft:random_selector", selector);
     }
 
     private static void trunk(JsonObject trunk, int base, int a, int b) {

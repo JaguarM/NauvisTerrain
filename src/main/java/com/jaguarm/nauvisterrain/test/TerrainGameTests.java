@@ -29,6 +29,8 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
 import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.blending.Blender;
+import net.minecraft.world.level.levelgen.feature.configurations.RandomFeatureConfiguration;
+import net.minecraft.world.level.levelgen.feature.configurations.TreeConfiguration;
 import net.minecraft.world.level.levelgen.presets.WorldPreset;
 import net.neoforged.bus.api.IEventBus;
 
@@ -177,6 +179,17 @@ public final class TerrainGameTests {
                 double seconds = (System.nanoTime() - start) / 1e9;
                 LogUtils.getLogger().info("{}: 400 full chunks in {} s, {} chunks per second", level.dimension().identifier(),
                         String.format(Locale.ROOT, "%.2f", seconds), String.format(Locale.ROOT, "%.0f", 400 / seconds));
+            }
+            helper.succeed();
+        });
+        // Dynamic Trees cancels a biome's trees by finding a random selector of minecraft:tree features.
+        tests.add("living_trees_are_what_dynamic_trees_cancels", 20, helper -> {
+            var configured = helper.getLevel().registryAccess().lookupOrThrow(Registries.CONFIGURED_FEATURE);
+            for (String tree : new String[]{"tree_01", "tree_08_brown", "tree_09_red"}) {
+                var feature = configured.getValue(Identifier.fromNamespaceAndPath(NauvisTerrain.MOD_ID, tree));
+                helper.assertTrue(feature != null && feature.config() instanceof RandomFeatureConfiguration selector
+                        && selector.features().getFirst().feature().value().getFeatures().findFirst().orElseThrow().value()
+                        .config() instanceof TreeConfiguration, tree + " is not a selector of one vanilla tree");
             }
             helper.succeed();
         });
