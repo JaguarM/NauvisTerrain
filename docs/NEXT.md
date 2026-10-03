@@ -11,11 +11,13 @@ terraces 4 blocks apart at Factorio's cliff levels, with cliff faces where Facto
 ramps in its gaps; its tiles as blocks of their own with textures from Factorio's, over vanilla's
 underground; its iron, copper, coal and stone patches as vanilla ore blocks one deep; and its trees,
 rocks and decoratives where Factorio puts them, as vanilla trees, plants and boulders. The world
-type's Customize button is Factorio's map generator screen, presets included. `tools/gen_terrain.py` turns the dump into the
-noise program (`src/main/resources/nauvis_terrain/noise/nauvis.json`, 1494 nodes, 113 roots), the
-`noise` package runs it, calibrated against Factorio's own values until every tile's share, the
-climate, the ores and the trees match (`FACTORIO.md`, what the oracle measured), and the `world`
-package lays it out. `./gradlew test` renders seed 123 into `build/nauvis-123-512.png`;
+type's Customize button is Factorio's map generator screen, presets included.
+`tools/gen_terrain.py` turns the dump into the noise program
+(`src/main/resources/nauvis_terrain/noise/nauvis.json`, 1494 nodes, 113 roots), the `noise`
+package runs it, calibrated against Factorio's own values until every tile's share, the climate,
+the ores and the trees match (`FACTORIO.md`, what the oracle measured), and the `world` package
+lays it out. Not yet seen in a client: the world creation screen, the map generator screen, and
+how it all looks from a player's eyes and from Distant Horizons'. `./gradlew test` renders seed 123 into `build/nauvis-123-512.png`;
 `./gradlew runGameTestServer` checks chunks of a real Nauvis world and measures it: about 80 full
 chunks a second asked for one at a time from the server thread, 99 over 2500, where vanilla's
 Nether in the same run makes 36. A block of 32 by 32 tiles evaluates in about 7 ms.
