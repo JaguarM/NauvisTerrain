@@ -140,7 +140,7 @@ public final class TerrainData {
             addBlock(TerrainBlocks.CLIFF, Nauvis.program().cliff.title());
             add("generator.nauvis_terrain.nauvis", "Nauvis");
             for (Prototype tile : DynamicTreesData.soils()) {
-                add("block.nauvis_terrain.rooty_" + TerrainBlocks.id(tile.name()), "Rooty " + tile.title().toLowerCase(java.util.Locale.ROOT));
+                add("block.dynamictrees.rooty_" + DynamicTreesData.soil(tile), "Rooty " + tile.title().toLowerCase(java.util.Locale.ROOT));
             }
             add("nauvis_terrain.map.title", "Nauvis map generator");
             add("nauvis_terrain.map.preset", "Preset");

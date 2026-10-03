@@ -39,6 +39,14 @@ final class DynamicTreesData {
         return !(tile.startsWith("sand") || tile.startsWith("red-desert"));
     }
 
+    /**
+     * A tile's soil name. Dynamic Trees makes each soil's rooty block in its own namespace, as
+     * `dynamictrees:rooty_<name>`, so the name carries Nauvis's to stay clear of other packs'.
+     */
+    static String soil(Prototype tile) {
+        return "nauvis_" + TerrainBlocks.id(tile.name());
+    }
+
     static List<Prototype> soils() {
         return Nauvis.program().prototypes.stream()
                 .filter(p -> p.kind().equals("tile") && TerrainBlocks.TILES.containsKey(p.name())).toList();
@@ -57,7 +65,7 @@ final class DynamicTreesData {
                 acceptable.add(dirtLike(tile.name()) ? "dirt_like" : "sand_like");
                 soil.add("acceptable_soils", acceptable);
                 saves.add(DataProvider.saveStable(cache, soil,
-                        root.resolve("soil_properties").resolve(TerrainBlocks.id(tile.name()) + ".json")));
+                        root.resolve("soil_properties").resolve(soil(tile) + ".json")));
             }
             saves.add(DataProvider.saveStable(cache, populator(), root.resolve("world_gen/default.json")));
             saves.add(DataProvider.saveStable(cache, cancellers(), root.resolve("world_gen/feature_cancellers.json")));
@@ -122,11 +130,11 @@ final class DynamicTreesData {
         }
     }
 
-    /** Each rooty soil's look: its tile under Dynamic Trees' roots. */
+    /** Each rooty soil's look, under the name Dynamic Trees gives it: its tile under Dynamic Trees' roots. */
     record Models(PackOutput output) implements DataProvider {
         @Override
         public CompletableFuture<?> run(CachedOutput cache) {
-            Path blockstates = output.getOutputFolder(PackOutput.Target.RESOURCE_PACK).resolve(NauvisTerrain.MOD_ID).resolve("blockstates");
+            Path blockstates = output.getOutputFolder(PackOutput.Target.RESOURCE_PACK).resolve("dynamictrees").resolve("blockstates");
             List<CompletableFuture<?>> saves = new ArrayList<>();
             for (Prototype tile : soils()) {
                 String id = TerrainBlocks.id(tile.name());
@@ -140,7 +148,7 @@ final class DynamicTreesData {
                 }
                 JsonObject state = new JsonObject();
                 state.add("multipart", multipart);
-                saves.add(DataProvider.saveStable(cache, state, blockstates.resolve("rooty_" + id + ".json")));
+                saves.add(DataProvider.saveStable(cache, state, blockstates.resolve("rooty_" + soil(tile) + ".json")));
             }
             return CompletableFuture.allOf(saves.toArray(CompletableFuture[]::new));
         }

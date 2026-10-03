@@ -122,7 +122,8 @@ The world
   vanilla leaves nearest its colour (cherry for the red ones, dark oak and pale oak for the brown);
   the five dead and dry trees are bare trunks, a forked desert tree and a fallen log.
 - The jar carries a Dynamic Trees treepack (`trees/nauvis_terrain/`, generated): every ground tile
-  a soil, dirt-like or sand-like, with its rooty look; a canceller for Nauvis's living trees; and
+  a soil, dirt-like or sand-like, with its rooty look under the name Dynamic Trees gives it
+  (`dynamictrees:rooty_nauvis_grass_1`, its namespace for a mod without its registry handler); a canceller for Nauvis's living trees; and
   Dynamic Trees' own grown in their place, in the mix of species Factorio's trees come to over four
   seeds. With Dynamic Trees the trees are spaced by its rules; without it the pack is inert.
 - A rock is a mound of stone over the tiles its collision box covers (`nauvis_terrain:boulder`),
