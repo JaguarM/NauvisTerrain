@@ -518,6 +518,21 @@ def placed(raw: dict, terrain: dict) -> list[dict]:
     return out
 
 
+def collision_mask(raw: dict, type_name: str, proto: dict) -> dict:
+    """A prototype's collision layers, its own or its type's default, with the two flags placing reads."""
+    mask = proto.get("collision_mask")
+    if mask is None:
+        key = "decorative" if type_name == "optimized-decorative" else type_name
+        mask = raw["utility-constants"]["default"]["default_collision_masks"].get(key)
+        if mask is None:
+            raise GenError(f"{proto['name']} has no collision mask and its type {type_name} no default")
+    return {
+        "layers": sorted(layer for layer, on in mask["layers"].items() if on),
+        "tiles_only": bool(mask.get("colliding_with_tiles_only")),
+        "not_colliding_with_itself": bool(mask.get("not_colliding_with_itself")),
+    }
+
+
 def colour(value, scale: float) -> list[int] | None:
     if value is None:
         return None
@@ -605,6 +620,7 @@ def build(raw: dict, terrain: dict) -> dict:
             "placement_density": autoplace.get("placement_density", 1),
             "richness": has_richness,
             "collision_box": proto.get("collision_box"),
+            "collision_mask": collision_mask(raw, p["type"], proto),
             "map_color": colour(proto.get("map_color"), 255 if p["type"] == "resource" else 1),
         })
 
@@ -622,9 +638,11 @@ def build(raw: dict, terrain: dict) -> dict:
             "control": raw["planet"][terrain["planet"]]["map_gen_settings"]["cliff_settings"].get("control"),
             "grid_size": cliff["grid_size"],
             "grid_offset": cliff["grid_offset"],
+            "collision_box": cliff["collision_box"][:2],
+            "collision_mask": collision_mask(raw, "cliff", cliff),
             "map_color": colour(cliff["map_color"], 1),
         },
-        "chart_colors": {kind: [round(c * 255) for c in rgba[:3]]
+        "chart_colors": {kind: [round(c * 255) for c in rgba[:3]] + rgba[3:]
                          for kind, rgba in raw["utility-constants"]["default"]["chart"]["default_color_by_type"].items()},
         "nodes": nodes,
     }
@@ -693,10 +711,11 @@ def render(program: dict) -> str:
             return json.dumps(["const", number(node[1])])
         return json.dumps(node, separators=(",", ":"))
 
-    head = {k: v for k, v in program.items() if k != "nodes"}
-    text = json.dumps(head, indent=2)
-    lines = ",\n".join(f"    {node_text(n)}" for n in program["nodes"])
-    return text[:-2] + ',\n  "nodes": [\n' + lines + "\n  ]\n}\n"
+    head = {k: v for k, v in program.items() if k not in ("prototypes", "nodes")}
+    text = json.dumps(head, indent=2)[:-2]
+    for key, line in (("prototypes", json.dumps), ("nodes", node_text)):
+        text += f',\n  "{key}": [\n' + ",\n".join(f"    {line(item)}" for item in program[key]) + "\n  ]"
+    return text + "\n}\n"
 
 
 def summary(program: dict, parsed: int) -> str:

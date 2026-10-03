@@ -31,14 +31,17 @@ Evaluation
 ----------
 
 The program runs over a batch of points at once: each node computes the whole batch before the
-next starts, and runs once per batch. A batch is usually a chunk's 256 columns; `spot_noise` runs
-its argument expressions over its own batch of candidate points. Numbers are `float`, as
-Factorio's are.
+next starts, and runs once per batch; what the map settings fix is computed once. A batch is a
+block of 32 by 32 tiles, Factorio's own size, and `Terrain` keeps the blocks it has made for the
+chunks that share them, so threads that make chunks side by side (Distant Horizons' among them)
+reuse each other's work. `spot_noise` runs its argument expressions over its own batch of
+candidate points. Numbers are `float`, as Factorio's are; a seed stays an exact integer.
 
-The noise package is plain Java (CLAUDE.md, rule 6). A test renders a seed to a PNG, each tile in
-its `map_color` from the dump, so it reads like Factorio's map preview of the same seed and
-settings. Looking at the two side by side is how the world is judged before anything is built in
-Minecraft.
+The noise package is plain Java (CLAUDE.md, rule 6). `./gradlew test` renders seed 123 to
+`build/nauvis-123-512.png`, each tile in its `map_color` from the dump, with each tile's share and
+each thing's count beside it in `build/nauvis-123-512.txt`, so it reads like Factorio's map preview
+of the same seed and settings. Looking at the two side by side is how the world is judged before
+anything is built in Minecraft.
 
 Autoplace
 ---------
@@ -48,8 +51,13 @@ name it or its `default_enabled` is not false.
 
 - Tiles: of all tile probabilities at a position, the highest wins.
 - Trees, rocks, decoratives and ores: the probability is the chance of each of
-  `placement_density` attempts on a tile, taken in `order`; an attempt that would overlap
-  something already placed fails. An ore's richness is its amount.
+  `placement_density` attempts on a tile, taken in `order`; of things sharing an order only the
+  most probable is tried. A thing cannot stand where its collision layers meet a tile's under its
+  box (no tree in water, fish only in it), nor overlap an earlier thing whose layers meet its own
+  (`NoiseProgram.Mask`). An ore's richness is its amount.
+- Earlier means earlier in order, then in attempt, then by a hash of the tile. A thing gives way
+  to every earlier candidate that overlaps it and fits its tiles, whether or not that one stands
+  in the end, so a chunk's things are decided from its neighbours' rolls alone.
 - Cliffs: along the contours `cliff_elevation_0 + k · cliff_elevation_interval` of
   `cliff_elevation`, on a 4 by 4 grid, where `cliffiness` is above 0.5. The interval is 40 over the
   cliff control's frequency; continuity (`cliff_richness`) sets how unbroken the lines are.
