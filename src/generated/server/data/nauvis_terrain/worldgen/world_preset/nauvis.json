@@ -9,6 +9,20 @@
           "biome": "nauvis_terrain:nauvis"
         },
         "settings": {
+          "resources": {
+            "coal": {
+              "Name": "minecraft:coal_ore"
+            },
+            "copper-ore": {
+              "Name": "minecraft:copper_ore"
+            },
+            "iron-ore": {
+              "Name": "minecraft:iron_ore"
+            },
+            "stone": {
+              "Name": "minecraft:stone"
+            }
+          },
           "surface": 64,
           "tiles": {
             "deepwater": {

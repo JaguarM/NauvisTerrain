@@ -12,6 +12,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ProtoChunk;
 import net.minecraft.world.level.chunk.UpgradeData;
@@ -26,6 +27,19 @@ import net.neoforged.bus.api.IEventBus;
 /** The world type's gametests. */
 public final class TerrainGameTests {
     private TerrainGameTests() {
+    }
+
+    /** Chunk 0,0, two more, and the first chunk of the starting area that has ore. */
+    private static ChunkPos[] starting(Terrain terrain) {
+        for (int cx = -8; cx < 8; cx++) {
+            for (int cz = -8; cz < 8; cz++) {
+                Terrain.Area area = terrain.area(cx * 16, cz * 16, 16, 16);
+                if (area.entities().stream().anyMatch(p -> p.prototype().type().equals("resource"))) {
+                    return new ChunkPos[]{new ChunkPos(0, 0), new ChunkPos(-7, 12), new ChunkPos(20, -3), new ChunkPos(cx, cz)};
+                }
+            }
+        }
+        return new ChunkPos[]{new ChunkPos(0, 0), new ChunkPos(-7, 12), new ChunkPos(20, -3)};
     }
 
     public static void register(IEventBus modBus) {
@@ -43,7 +57,8 @@ public final class TerrainGameTests {
             generator.createState(level.registryAccess().lookupOrThrow(Registries.STRUCTURE_SET), randomState, seed);
             Terrain terrain = new Terrain(new Evaluator(Nauvis.program(), MapSettings.defaults(seed)));
             int surface = generator.settings().surface();
-            for (ChunkPos pos : new ChunkPos[]{new ChunkPos(0, 0), new ChunkPos(-7, 12), new ChunkPos(20, -3)}) {
+            int ores = 0;
+            for (ChunkPos pos : starting(terrain)) {
                 ProtoChunk chunk = new ProtoChunk(pos, UpgradeData.EMPTY, level, level.palettedContainerFactory(), null);
                 generator.fillFromNoise(Blender.empty(), randomState, level.structureManager(), chunk).join();
                 Terrain.Area area = terrain.area(pos.getMinBlockX(), pos.getMinBlockZ(), 16, 16);
@@ -52,13 +67,24 @@ public final class TerrainGameTests {
                         String tile = area.tile(pos.getMinBlockX() + x, pos.getMinBlockZ() + z).name();
                         BlockState expected = generator.settings().tiles().get(tile).block();
                         BlockState top = chunk.getBlockState(new BlockPos(x, surface, z));
-                        helper.assertTrue(top == expected, "at " + pos + " " + x + "," + z + " the top is " + top
-                                + " where the evaluator has " + tile);
+                        helper.assertTrue(top == expected || generator.settings().resources().containsValue(top),
+                                "at " + pos + " " + x + "," + z + " the top is " + top + " where the evaluator has " + tile);
                         helper.assertTrue(chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, x, z) == surface,
                                 "the surface heightmap is not at the surface");
                     }
                 }
+                for (Terrain.Placed placed : area.entities()) {
+                    BlockState ore = generator.settings().resources().get(placed.prototype().name());
+                    if (ore != null) {
+                        BlockPos at = new BlockPos(placed.x() - pos.getMinBlockX(), surface, placed.y() - pos.getMinBlockZ());
+                        helper.assertTrue(chunk.getBlockState(at) == ore, "no " + placed.prototype().name() + " at " + at);
+                        BlockState below = chunk.getBlockState(at.below());
+                        helper.assertTrue(below.is(Blocks.STONE) || below.is(Blocks.DEEPSLATE), "an ore is more than one block deep at " + at);
+                        ores++;
+                    }
+                }
             }
+            helper.assertTrue(ores > 0, "no ore in the starting area");
             helper.succeed();
         });
         // The gametest server's world is Nauvis (build.gradle, gameTestPacks): full chunks, through features.

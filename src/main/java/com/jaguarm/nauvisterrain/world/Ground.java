@@ -12,10 +12,12 @@ import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.levelgen.Heightmap;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Nauvis's ground for one world seed: each column the tile's block on top of the land, or its
- * liquid cut into it, over stone, deepslate and bedrock (docs/ARCHITECTURE.md, the world).
+ * liquid cut into it, over stone, deepslate and bedrock, and a resource's block in place of the
+ * top block where Factorio puts one (docs/ARCHITECTURE.md, the world).
  */
 final class Ground {
     private static final BlockState STONE = Blocks.STONE.defaultBlockState();
@@ -33,11 +35,13 @@ final class Ground {
     private final BlockState[] block;
     private final BlockState[] floor;
     private final int[] depth;
+    private final Map<String, BlockState> resources;
 
     Ground(NauvisSettings settings, long worldSeed) {
         this.mapSeed = worldSeed & 0xFFFFFFFFL;
         this.terrain = new Terrain(new Evaluator(Nauvis.program(), MapSettings.defaults(mapSeed)));
         this.surface = settings.surface();
+        this.resources = settings.resources();
         List<Prototype> tiles = terrain.tiles;
         block = new BlockState[tiles.size()];
         floor = new BlockState[tiles.size()];
@@ -77,6 +81,15 @@ final class Ground {
                 int floorY = surface - depth[tile];
                 oceanFloor.update(x, depth[tile] > 1 ? floorY : surface, z, depth[tile] > 1 ? floor[tile] : block[tile]);
                 worldSurface.update(x, surface, z, block[tile]);
+            }
+        }
+        if (surface <= chunk.getMaxY()) {
+            LevelChunkSection section = chunk.getSection(chunk.getSectionIndex(surface));
+            for (Terrain.Placed placed : area.entities()) {
+                BlockState ore = resources.get(placed.prototype().name());
+                if (ore != null && placed.prototype().type().equals("resource")) {
+                    section.setBlockState(placed.x() - x0, surface & 15, placed.y() - z0, ore, false);
+                }
             }
         }
     }

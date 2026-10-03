@@ -13,6 +13,8 @@ Each a decision. If something looks broken, look here before treating it as a bu
   come out differently.
 - Land is one height between cliffs. Factorio's `elevation` decides only where water is. *Kept.*
 - No uranium and no crude oil: vanilla has no block for either.
+- An ore's richness is not kept: a patch is one block deep and every block is one vanilla ore.
+  A pack's CrumblingOre makes an ore last, and its distance rule is Factorio's richness rule.
 - No biter spawners and no worms.
 - Under the ground is Minecraft's: stone, deepslate, bedrock and vanilla's ores other than iron,
   copper and coal. Factorio has no underground. No caves. *Kept.*

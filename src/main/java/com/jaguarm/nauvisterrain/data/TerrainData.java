@@ -52,6 +52,12 @@ public final class TerrainData {
             "water", new String[]{"3", "minecraft:sand"},
             "deepwater", new String[]{"8", "minecraft:gravel"});
     private static final int SURFACE = 64;
+    /** The vanilla block each Factorio resource is (CLAUDE.md, rule 4); uranium and oil have none. */
+    private static final Map<String, String> RESOURCES = Map.of(
+            "iron-ore", "minecraft:iron_ore",
+            "copper-ore", "minecraft:copper_ore",
+            "coal", "minecraft:coal_ore",
+            "stone", "minecraft:stone");
     /** The underground ores and stones the biome keeps: vanilla's, less the three Factorio places on the surface. */
     private static final List<String> UNDERGROUND_ORES = List.of(
             "ore_dirt", "ore_gravel", "ore_granite_upper", "ore_granite_lower", "ore_diorite_upper", "ore_diorite_lower",
@@ -277,9 +283,20 @@ public final class TerrainData {
                 }
                 tiles.add(tile.name(), entry);
             }
+            JsonObject resources = new JsonObject();
+            for (Prototype p : Nauvis.program().prototypes) {
+                if (p.type().equals("resource")) {
+                    String block = RESOURCES.get(p.name());
+                    if (block == null) {
+                        throw new IllegalStateException("Nauvis places " + p.name() + ", which has no vanilla block here");
+                    }
+                    resources.add(p.name(), state(block));
+                }
+            }
             JsonObject settings = new JsonObject();
             settings.addProperty("surface", SURFACE);
             settings.add("tiles", tiles);
+            settings.add("resources", resources);
             JsonObject biomeSource = new JsonObject();
             biomeSource.addProperty("type", "minecraft:fixed");
             biomeSource.addProperty("biome", "nauvis_terrain:nauvis");

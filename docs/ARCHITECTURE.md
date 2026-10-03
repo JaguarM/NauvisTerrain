@@ -80,7 +80,8 @@ The world
 - The top block is the tile's, over stone, deepslate and bedrock, with vanilla's blends between
   them. No caves, no aquifers.
 - An ore replaces the ground where Factorio puts a resource: iron, copper, coal and stone, as
-  vanilla's `iron_ore`, `copper_ore`, `coal_ore` and `stone`.
+  vanilla's `iron_ore`, `copper_ore`, `coal_ore` and `stone`, one block deep in place of the
+  tile's block. The patches are Factorio's, starting ones included.
 - The spawn is Factorio's starting position, 0,0: vanilla's spawn search starts there when the
   generator has no climate to search.
 - One biome, `nauvis_terrain:nauvis`, in `#minecraft:is_overworld` so biome modifiers aimed at
