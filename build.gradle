@@ -186,12 +186,13 @@ var checkTerrain = tasks.register('checkTerrain') {
     def root = projectDir
     def dumps = fileTree('reference/factorio') { include 'data-raw-*.json' }
     def locale = file('reference/factorio/locale/en/base.cfg')
+    def coreLocale = file('reference/factorio/locale/en/core.cfg')
     inputs.files(fileTree('tools') { include '*.py' }, 'data/terrain.json', dumps)
             .withPropertyName('generator')
     outputs.upToDateWhen { false }
 
     doLast {
-        if (dumps.isEmpty() || !locale.exists()) {
+        if (dumps.isEmpty() || !locale.exists() || !coreLocale.exists()) {
             logger.lifecycle("checkTerrain: skipped, Factorio's dump or locale is absent from reference/factorio (reference/README.md)")
             return
         }

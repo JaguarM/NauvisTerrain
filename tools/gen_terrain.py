@@ -47,6 +47,7 @@ FACTORIO_VERSION = "2.0.77"
 DATA_RAW = REPO / "reference" / "factorio" / f"data-raw-{FACTORIO_VERSION}.json"
 TERRAIN = REPO / "data" / "terrain.json"
 LOCALE = REPO / "reference" / "factorio" / "locale" / "en" / "base.cfg"
+CORE_LOCALE = REPO / "reference" / "factorio" / "locale" / "en" / "core.cfg"
 PROGRAM = REPO / "src" / "main" / "resources" / "nauvis_terrain" / "noise" / "nauvis.json"
 
 CLIMATE = ("elevation", "moisture", "aux", "temperature", "cliff_elevation", "cliffiness")
@@ -561,6 +562,91 @@ def title(proto: dict, kind: str, locale: dict) -> str:
     return found
 
 
+# Factorio's names for a slider's settings, as its map generator screen labels them, by control category.
+SLIDER_LABELS = {
+    "resource": {"frequency": "frequency", "size": "size", "richness": "richness"},
+    "terrain": {"frequency": "scale", "size": "coverage"},
+    "climate": {"frequency": "scale", "bias": "bias"},
+}
+SLIDER_TOOLTIPS = {
+    "resource": {"frequency": "resource-frequency-description", "size": "resource-size-description",
+                 "richness": "resource-richness-description"},
+    "terrain": {"frequency": "terrain-scale-description", "size": "terrain-coverage-description"},
+    "climate": {"frequency": "terrain-scale-description", "bias": "terrain-bias-description"},
+}
+# Factorio's map generator screen shows the climate of these two; temperature has no slider there.
+CLIMATE_TITLES = {"moisture": "moisture", "aux": "aux"}
+CLIMATE_ORDER = list(CLIMATE_TITLES)
+# A preset's slider value by name (docs/FACTORIO.md, presets).
+SLIDER_NAMES = {"none": 0.0, "very-low": 0.5, "very-small": 0.5, "very-poor": 0.5,
+                "low": 2 ** -0.5, "small": 2 ** -0.5, "poor": 2 ** -0.5,
+                "normal": 1.0, "medium": 1.0, "regular": 1.0,
+                "high": 2 ** 0.5, "big": 2 ** 0.5, "good": 2 ** 0.5,
+                "very-high": 2.0, "very-big": 2.0, "very-good": 2.0}
+
+
+def controls(raw: dict, nodes: list, cliff_control: str, locale: dict, core: dict) -> list[dict]:
+    """Every slider the program reads, in Factorio's order and words: the map generator screen's rows."""
+    gui = core["gui-map-generator"]
+    read = {n[1] for n in nodes if n[0] == "input" and n[1].startswith("control:")}
+    names = sorted({key.split(":")[1] for key in read}, key=lambda n: (
+        ["resource", "terrain", "climate"].index(category(raw, n)) if category(raw, n) else 9,
+        CLIMATE_ORDER.index(n) if n in CLIMATE_ORDER else raw["autoplace-control"].get(n, {}).get("order", n)))
+    out = []
+    for name in names:
+        kind = category(raw, name)
+        if kind is None:
+            continue
+        if kind == "climate":
+            title = gui[CLIMATE_TITLES[name]]
+        elif kind == "resource":
+            title = locale["entity-name"][name]
+        else:
+            title = locale["autoplace-control-names"][name]
+        settings = [{"key": f"control:{name}:{setting}", "label": gui[label],
+                     "tooltip": gui[SLIDER_TOOLTIPS[kind][setting]]}
+                    for setting, label in SLIDER_LABELS[kind].items() if f"control:{name}:{setting}" in read]
+        out.append({"name": name, "title": title, "kind": kind, "settings": settings})
+    out.append({"name": cliff_control, "title": locale["autoplace-control-names"][cliff_control], "kind": "cliff",
+                "settings": [{"key": "cliff_frequency", "label": gui["cliff-frequency"],
+                              "tooltip": gui["cliff-frequency-description"]},
+                             {"key": "cliff_continuity", "label": gui["cliff-continuity"],
+                              "tooltip": gui["cliff-continuity-description"]}]})
+    return out
+
+
+def category(raw: dict, name: str) -> str | None:
+    if name in CLIMATE_TITLES:
+        return "climate"
+    control = raw["autoplace-control"].get(name)
+    return control["category"] if control and control["category"] in ("resource", "terrain") else None
+
+
+def presets(raw: dict, program_controls: list, properties: dict, locale: dict) -> list[dict]:
+    """The presets that change what this world places, as slider values and properties; not one with a map size."""
+    sliders = {s["key"] for c in program_controls for s in c["settings"]}
+    out = []
+    for name, preset in sorted((n, p) for n, p in raw["map-gen-presets"]["default"].items() if isinstance(p, dict)):
+        basic = preset.get("basic_settings", {})
+        if "width" in basic or "height" in basic:
+            continue
+        values = {}
+        for control, settings in basic.get("autoplace_controls", {}).items():
+            for setting, value in settings.items():
+                key = f"control:{control}:{setting}"
+                if key in sliders:
+                    values[key] = SLIDER_NAMES[value] if isinstance(value, str) else float(value)
+        names = {k: v if isinstance(v, str) else json.dumps(v)
+                 for k, v in basic.get("property_expression_names", {}).items() if k in properties}
+        smoothing = basic.get("cliff_settings", {}).get("cliff_smoothing", 0)
+        if name != "default" and not values and not names and not smoothing:
+            continue
+        out.append({"name": name, "title": locale["map-gen-preset-name"][name], "order": preset["order"],
+                    "controls": values, "properties": names, "cliff_smoothing": smoothing})
+    out.sort(key=lambda p: (p["order"], p["name"]))
+    return out
+
+
 def colour(value, scale: float) -> list[int] | None:
     if value is None:
         return None
@@ -625,7 +711,7 @@ def parse_everything(raw: dict) -> int:
 
 # -- the program ------------------------------------------------------------------------------
 
-def build(raw: dict, terrain: dict, locale: dict, extra_roots: tuple[str, ...] = ()) -> dict:
+def build(raw: dict, terrain: dict, locale: dict, core: dict, extra_roots: tuple[str, ...] = ()) -> dict:
     compiler = Compiler(raw, preset_properties(raw))
     roots: dict[str, int] = {}
     for name in CLIMATE + tuple(extra_roots):
@@ -674,10 +760,13 @@ def build(raw: dict, terrain: dict, locale: dict, extra_roots: tuple[str, ...] =
             "collision_mask": collision_mask(raw, "cliff", cliff),
             "map_color": colour(cliff["map_color"], 1),
         },
+        "controls": controls(raw, nodes, raw["planet"][terrain["planet"]]["map_gen_settings"]["cliff_settings"]["control"],
+                             locale, core),
         "chart_colors": {kind: [round(c * 255) for c in rgba[:3]] + rgba[3:]
                          for kind, rgba in raw["utility-constants"]["default"]["chart"]["default_color_by_type"].items()},
         "nodes": nodes,
     }
+    program["presets"] = presets(raw, program["controls"], compiler.properties, locale)
     return program
 
 
@@ -743,9 +832,9 @@ def render(program: dict) -> str:
             return json.dumps(["const", number(node[1])])
         return json.dumps(node, separators=(",", ":"))
 
-    head = {k: v for k, v in program.items() if k not in ("prototypes", "nodes")}
+    head = {k: v for k, v in program.items() if k not in ("prototypes", "controls", "presets", "nodes")}
     text = json.dumps(head, indent=2)[:-2]
-    for key, line in (("prototypes", json.dumps), ("nodes", node_text)):
+    for key, line in (("controls", json.dumps), ("presets", json.dumps), ("prototypes", json.dumps), ("nodes", node_text)):
         text += f',\n  "{key}": [\n' + ",\n".join(f"    {line(item)}" for item in program[key]) + "\n  ]"
     return text + "\n}\n"
 
@@ -788,14 +877,16 @@ def main() -> int:
     if not DATA_RAW.exists():
         print(f"{DATA_RAW} is missing; reference/README.md says how to make it.", file=sys.stderr)
         return 2
-    if not LOCALE.exists():
-        print(f"{LOCALE} is missing; reference/README.md says how to make it.", file=sys.stderr)
-        return 2
+    for path in (LOCALE, CORE_LOCALE):
+        if not path.exists():
+            print(f"{path} is missing; reference/README.md says how to make it.", file=sys.stderr)
+            return 2
     raw = json.loads(DATA_RAW.read_text(encoding="utf-8"))
     terrain = json.loads(TERRAIN.read_text(encoding="utf-8"))
     try:
         parsed = parse_everything(raw)
-        program = build(raw, terrain, load_locale(LOCALE), tuple(r for r in args.roots.split(",") if r))
+        program = build(raw, terrain, load_locale(LOCALE), load_locale(CORE_LOCALE),
+                        tuple(r for r in args.roots.split(",") if r))
     except GenError as e:
         print(f"gen_terrain: {e}", file=sys.stderr)
         return 1

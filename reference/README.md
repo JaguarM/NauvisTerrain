@@ -12,8 +12,9 @@ which writes `%APPDATA%/Factorio/script-output/data-raw-dump.json` and exits. Co
 the version in `data/base/info.json`. Only the mods in `mod-list.json` are in the dump; this mod
 wants `base` alone.
 
-`factorio/locale/en/base.cfg` is a copy of the install's `data/base/locale/en/base.cfg`, the
-English names the generator gives each block.
+`factorio/locale/en/base.cfg` and `core.cfg` are copies of the install's
+`data/base/locale/en/base.cfg` and `data/core/locale/en/core.cfg`: the English names the generator
+gives each block, and the map generator screen's words.
 
 `factorio/docs/` is the API pages the terrain needs, as text: `python tools/factorio_docs.py`.
 `factorio/previews/` holds Factorio's own map previews (`docs/FACTORIO.md`, the map preview).

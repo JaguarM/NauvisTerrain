@@ -59,7 +59,7 @@ final class Ground {
 
     Ground(NauvisSettings settings, long worldSeed) {
         this.mapSeed = worldSeed & 0xFFFFFFFFL;
-        MapSettings map = MapSettings.defaults(mapSeed);
+        MapSettings map = settings.map().settings(mapSeed);
         this.terrain = new Terrain(new Evaluator(Nauvis.program(), map));
         this.surface = settings.surface();
         this.step = settings.cliff().step();

@@ -137,6 +137,10 @@ public final class TerrainData {
             }
             addBlock(TerrainBlocks.CLIFF, Nauvis.program().cliff.title());
             add("generator.nauvis_terrain.nauvis", "Nauvis");
+            add("nauvis_terrain.map.title", "Nauvis map generator");
+            add("nauvis_terrain.map.preset", "Preset");
+            add("nauvis_terrain.map.custom", "Custom");
+            add("nauvis_terrain.map.none", "None");
         }
     }
 

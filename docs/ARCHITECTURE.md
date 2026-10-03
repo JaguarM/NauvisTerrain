@@ -69,6 +69,12 @@ The world
   sampled at the block's corner, as Factorio samples a tile.
 - The world type is `nauvis_terrain:nauvis` in the world type list. Its map seed is the world
   seed's low 32 bits, Factorio's being 32 bits: seed 123 is the map `./gradlew test` renders.
+- Its Customize button opens Factorio's map generator screen: a preset, then each slider of each
+  control the program reads, in Factorio's words and steps (17% to 600%, a bias of ±0.5, none for
+  a size), the cliffs' frequency and continuity among them. The values are saved in the world's
+  generator settings (`NauvisMap`): the cliff interval is 40 over the frequency, as in Factorio,
+  and a preset swaps its properties as Factorio's do. The generator lists the sliders and the
+  presets in the program, from the dump and Factorio's English.
 - The world is flat between cliffs. Land is one height on each terrace; Factorio's `elevation`
   decides only where water is. `water` is vanilla water 3 deep over sand, `deepwater` 8 deep over
   gravel, cut into the ground.

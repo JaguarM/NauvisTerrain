@@ -19,5 +19,9 @@
   "block.nauvis_terrain.sand_1": "Sand 1",
   "block.nauvis_terrain.sand_2": "Sand 2",
   "block.nauvis_terrain.sand_3": "Sand 3",
-  "generator.nauvis_terrain.nauvis": "Nauvis"
+  "generator.nauvis_terrain.nauvis": "Nauvis",
+  "nauvis_terrain.map.custom": "Custom",
+  "nauvis_terrain.map.none": "None",
+  "nauvis_terrain.map.preset": "Preset",
+  "nauvis_terrain.map.title": "Nauvis map generator"
 }

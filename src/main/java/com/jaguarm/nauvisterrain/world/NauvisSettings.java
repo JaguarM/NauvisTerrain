@@ -10,10 +10,16 @@ import java.util.Optional;
 /**
  * The world preset's settings for the generator: the y of the lowest terrace's top block, for each
  * Factorio tile the block that stands for it, for each resource the block that replaces the ground
- * where Factorio puts it, and the cliffs' block and step (docs/ARCHITECTURE.md, what a pack
- * changes). A resource with no block is not placed.
+ * where Factorio puts it, the cliffs' block and step (docs/ARCHITECTURE.md, what a pack changes),
+ * and the map generator screen's sliders. A resource with no block is not placed.
  */
-public record NauvisSettings(int surface, Map<String, Tile> tiles, Map<String, BlockState> resources, Cliff cliff) {
+public record NauvisSettings(int surface, Map<String, Tile> tiles, Map<String, BlockState> resources, Cliff cliff,
+                             NauvisMap map) {
+
+    /** The same world with other map generator settings. */
+    public NauvisSettings withMap(NauvisMap map) {
+        return new NauvisSettings(surface, tiles, resources, cliff, map);
+    }
 
     /** A cliff's face block, and how many blocks one cliff level rises. */
     public record Cliff(BlockState block, int step) {
@@ -40,6 +46,7 @@ public record NauvisSettings(int surface, Map<String, Tile> tiles, Map<String, B
             Codec.unboundedMap(Codec.STRING, Tile.CODEC).fieldOf("tiles").forGetter(NauvisSettings::tiles),
             Codec.unboundedMap(Codec.STRING, BlockState.CODEC).optionalFieldOf("resources", Map.of())
                     .forGetter(NauvisSettings::resources),
-            Cliff.CODEC.fieldOf("cliff").forGetter(NauvisSettings::cliff)
+            Cliff.CODEC.fieldOf("cliff").forGetter(NauvisSettings::cliff),
+            NauvisMap.CODEC.optionalFieldOf("map", NauvisMap.NORMAL).forGetter(NauvisSettings::map)
     ).apply(i, NauvisSettings::new));
 }

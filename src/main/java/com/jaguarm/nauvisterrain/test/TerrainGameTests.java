@@ -3,14 +3,19 @@ package com.jaguarm.nauvisterrain.test;
 import com.jaguarm.nauvisterrain.NauvisTerrain;
 import com.jaguarm.nauvisterrain.noise.Evaluator;
 import com.jaguarm.nauvisterrain.noise.MapSettings;
+import com.jaguarm.nauvisterrain.noise.NoiseProgram;
 import com.jaguarm.nauvisterrain.noise.Terrain;
 import com.jaguarm.nauvisterrain.world.Nauvis;
 import com.jaguarm.nauvisterrain.world.NauvisGenerator;
+import com.jaguarm.nauvisterrain.world.NauvisMap;
 import com.jaguarm.nauvisterrain.world.NauvisSettings;
+import com.google.gson.JsonElement;
+import com.mojang.serialization.JsonOps;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.RegistryOps;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.server.level.ServerLevel;
@@ -124,6 +129,34 @@ public final class TerrainGameTests {
                 }
             }
             helper.assertTrue(standing >= most * 3 / 4, standing + " of " + most + " trees stand in " + forest);
+            helper.succeed();
+        });
+        tests.add("a_preset_is_saved_and_builds_its_map", 20, helper -> {
+            ServerLevel level = helper.getLevel();
+            NauvisGenerator base = presetGenerator(helper);
+            NoiseProgram.Preset lakes = Nauvis.program().presets.stream().filter(p -> p.name().equals("lakes")).findFirst()
+                    .orElseThrow(() -> helper.assertionException("Factorio's lakes preset is missing"));
+            NauvisMap map = new NauvisMap(lakes.sliders(), lakes.properties(), lakes.cliffSmoothing());
+            NauvisGenerator generator = new NauvisGenerator(base.getBiomeSource(), base.settings().withMap(map));
+            var ops = RegistryOps.create(JsonOps.INSTANCE, level.registryAccess());
+            JsonElement saved = NauvisGenerator.CODEC.codec().encodeStart(ops, generator).getOrThrow();
+            NauvisGenerator loaded = NauvisGenerator.CODEC.codec().parse(ops, saved).getOrThrow();
+            helper.assertTrue(loaded.settings().map().equals(map), "the map settings did not survive saving: " + saved);
+            loaded.createState(level.registryAccess().lookupOrThrow(Registries.STRUCTURE_SET), randomState(level), SEED);
+            Terrain terrain = new Terrain(new Evaluator(Nauvis.program(), map.settings(SEED)));
+            ChunkPos pos = new ChunkPos(9, -4);
+            ProtoChunk chunk = generate(helper, loaded, pos);
+            Terrain.Area area = terrain.area(pos.getMinBlockX(), pos.getMinBlockZ(), 16, 16);
+            for (int x = 0; x < 16; x++) {
+                for (int z = 0; z < 16; z++) {
+                    int wx = pos.getMinBlockX() + x;
+                    int wz = pos.getMinBlockZ() + z;
+                    BlockState expected = loaded.settings().tiles().get(area.tile(wx, wz).name()).block();
+                    BlockState top = chunk.getBlockState(new BlockPos(x, loaded.top(wx, wz), z));
+                    helper.assertTrue(top == expected || loaded.settings().resources().containsValue(top),
+                            "with the lakes preset the top at " + wx + "," + wz + " is " + top);
+                }
+            }
             helper.succeed();
         });
         // The gametest server's world is Nauvis (build.gradle, gameTestPacks): full chunks, through features.

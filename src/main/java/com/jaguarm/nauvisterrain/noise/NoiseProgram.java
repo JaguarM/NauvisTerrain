@@ -79,6 +79,19 @@ public final class NoiseProgram {
         }
     }
 
+    /** One slider of Factorio's map generator screen: the setting it sets, and Factorio's words for it. */
+    public record Slider(String key, String label, String tooltip) {
+    }
+
+    /** A row of the map generator screen: an autoplace control, the climate, or the cliffs. */
+    public record Control(String name, String title, String kind, List<Slider> sliders) {
+    }
+
+    /** One of Factorio's map presets: slider values, swapped properties and cliff smoothing. */
+    public record Preset(String name, String title, Map<String, Double> sliders, Map<String, String> properties,
+                         double cliffSmoothing) {
+    }
+
     /** The cliff prototype: its English name, grid, offset, box, layers and colour. */
     public record Cliff(String name, String title, String control, double gridWidth, double gridHeight,
                         double offsetX, double offsetY, double[] collisionBox, Mask collisionMask, int mapColor) {
@@ -89,6 +102,8 @@ public final class NoiseProgram {
     public final Map<String, Integer> roots;
     public final List<Prototype> prototypes;
     public final Cliff cliff;
+    public final List<Control> controls;
+    public final List<Preset> presets;
     /** The map preview's colour for things without one of their own, as 0xAARRGGBB. */
     public final Map<String, Integer> chartColors;
 
@@ -119,6 +134,29 @@ public final class NoiseProgram {
                 grid.get(0).getAsDouble(), grid.get(1).getAsDouble(),
                 offset.get(0).getAsDouble(), offset.get(1).getAsDouble(), box(c.get("collision_box")),
                 mask(c.getAsJsonObject("collision_mask")), colour(c.get("map_color")));
+        List<Control> controlList = new ArrayList<>();
+        for (JsonElement e : json.getAsJsonArray("controls")) {
+            JsonObject control = e.getAsJsonObject();
+            List<Slider> sliders = new ArrayList<>();
+            for (JsonElement s : control.getAsJsonArray("settings")) {
+                JsonObject o = s.getAsJsonObject();
+                sliders.add(new Slider(o.get("key").getAsString(), o.get("label").getAsString(), o.get("tooltip").getAsString()));
+            }
+            controlList.add(new Control(control.get("name").getAsString(), control.get("title").getAsString(),
+                    control.get("kind").getAsString(), List.copyOf(sliders)));
+        }
+        controls = List.copyOf(controlList);
+        List<Preset> presetList = new ArrayList<>();
+        for (JsonElement e : json.getAsJsonArray("presets")) {
+            JsonObject p = e.getAsJsonObject();
+            Map<String, Double> values = new LinkedHashMap<>();
+            p.getAsJsonObject("controls").entrySet().forEach(v -> values.put(v.getKey(), v.getValue().getAsDouble()));
+            Map<String, String> properties = new LinkedHashMap<>();
+            p.getAsJsonObject("properties").entrySet().forEach(v -> properties.put(v.getKey(), v.getValue().getAsString()));
+            presetList.add(new Preset(p.get("name").getAsString(), p.get("title").getAsString(), Map.copyOf(values),
+                    Map.copyOf(properties), p.get("cliff_smoothing").getAsDouble()));
+        }
+        presets = List.copyOf(presetList);
         Map<String, Integer> chart = new LinkedHashMap<>();
         json.getAsJsonObject("chart_colors").entrySet().forEach(e -> {
             JsonArray rgba = e.getValue().getAsJsonArray();

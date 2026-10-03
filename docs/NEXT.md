@@ -10,7 +10,8 @@ A world type, `nauvis_terrain:nauvis`: Factorio's Nauvis ground, water and start
 terraces 4 blocks apart at Factorio's cliff levels, with cliff faces where Factorio draws cliffs and
 ramps in its gaps; its tiles as blocks of their own with textures from Factorio's, over vanilla's
 underground; its iron, copper, coal and stone patches as vanilla ore blocks one deep; and its trees,
-rocks and decoratives where Factorio puts them, as vanilla trees, plants and boulders. `tools/gen_terrain.py` turns the dump into the
+rocks and decoratives where Factorio puts them, as vanilla trees, plants and boulders. The world
+type's Customize button is Factorio's map generator screen, presets included. `tools/gen_terrain.py` turns the dump into the
 noise program (`src/main/resources/nauvis_terrain/noise/nauvis.json`, 1494 nodes, 113 roots), the
 `noise` package runs it, calibrated against Factorio's own values until every tile's share, the
 climate, the ores and the trees match (`FACTORIO.md`, what the oracle measured), and the `world`
@@ -21,20 +22,13 @@ about 40 ms to evaluate.
 The jobs
 --------
 
-### 1. The map settings
-
-Factorio's map generator screen in Minecraft's world creation: the seed, each control's
-frequency, size and richness (water, trees, rocks, cliffs, each ore), the climate sliders
-(`control:moisture:frequency` and `bias`, `control:aux:…`), the starting area, and the presets
-(`FACTORIO.md`). `ribbon-world`'s map is 128 tiles tall, which needs a border or a skip.
-
-### 2. Speed
+### 1. Speed
 
 Chunks per second against a vanilla world, and a pregeneration of a few thousand chunks. Factorio
 evaluates 32 by 32 tiles at a time; batching four Minecraft chunks, or caching per region, are the
 levers.
 
-### 3. Project Nauvis
+### 2. Project Nauvis
 
 Once a world is playable, the pack takes the mod as an `includeBuild`. What already meets it there:
 
