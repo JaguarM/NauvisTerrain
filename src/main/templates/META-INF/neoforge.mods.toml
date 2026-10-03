@@ -1,0 +1,29 @@
+license="${mod_license}"
+
+[[mods]]
+modId="${mod_id}"
+version="${mod_version}"
+displayName="${mod_name}"
+authors="JaguarM"
+
+description='''
+Factorio's Nauvis as a Minecraft world.
+
+The ground, water, cliffs, trees, rocks and decoratives of Factorio 2.0's map generator, laid
+out by its own noise expressions on a flat world, one tile to a block, with iron, copper, coal
+and stone in Factorio's patch shapes at the surface.
+'''
+
+[[dependencies.${mod_id}]]
+    modId="neoforge"
+    type="required"
+    versionRange="[${neo_version},)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="minecraft"
+    type="required"
+    versionRange="${minecraft_version_range}"
+    ordering="NONE"
+    side="BOTH"
