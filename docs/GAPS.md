@@ -19,7 +19,8 @@ Each a decision. If something looks broken, look here before treating it as a bu
 - Cliff levels below -1 are on the lowest terrace; under 1% of the map.
 - No uranium and no crude oil: vanilla has no block for either.
 - An ore's richness is not kept: a patch is one block deep and every block is one vanilla ore.
-  A pack's CrumblingOre makes an ore last, and its distance rule is Factorio's richness rule.
+  A pack's Crumbling Ore makes a block last, its harvests growing in rings of distance from the
+  start, which follow Factorio's richness by distance to within a tenth at Project Nauvis's 2600.
 - No biter spawners and no worms, nor what comes with them: the red croton, red pita and mud
   decals around a base, and the trees and decoratives a base keeps off.
 - Trees, plants and small rocks are vanilla's nearest, not Factorio's own: a leaf colour, a plant

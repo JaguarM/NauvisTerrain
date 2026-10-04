@@ -85,8 +85,11 @@ The world
 
 - Factorio's x and y are Minecraft's x and z: both grow east and south. One tile is one block,
   sampled at the block's corner, as Factorio samples a tile.
-- The world type is `nauvis_terrain:nauvis` in the world type list. Its map seed is the world
-  seed's low 32 bits, Factorio's being 32 bits: seed 123 is the map `./gradlew test` renders.
+- The world type is `nauvis_terrain:nauvis` in the world type list, and a new world starts on it:
+  whoever installs the mod wants Nauvis, and Default, vanilla's, is one click away. Vanilla's
+  `minecraft:normal` preset is left as it is, so a pack or a server can still make vanilla worlds;
+  a server names Nauvis in `server.properties`. Its map seed is the world seed's low 32 bits,
+  Factorio's being 32 bits: seed 123 is the map `./gradlew test` renders.
 - Its Customize button opens Factorio's map generator screen: a preset, then each slider of each
   control the program reads, in Factorio's words and steps (17% to 600%, a bias of ±0.5, none for
   a size), the cliffs' frequency and continuity among them. The values are saved in the world's

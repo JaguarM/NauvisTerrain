@@ -16,7 +16,7 @@ noise program (`src/main/resources/nauvis_terrain/noise/nauvis.json`, 1744 nodes
 `noise` package runs it with the engine's built-ins as `factorio.exe` computes them, and places
 tiles, trees, rocks, ores and decoratives as Factorio's map generator does: around the start every
 one is Factorio's (`FACTORIO.md`, what the oracle checks). The `world` package lays it out. Not
-yet seen in a client: the world creation screen, the map generator screen, and how it all looks
+yet seen in a client: the world creation screen starting on Nauvis, the map generator screen, and how it all looks
 from a player's eyes and from Distant Horizons'. `./gradlew test` renders seed 123 into
 `build/nauvis-123-512.png`; `./gradlew runGameTestServer` checks chunks of a real Nauvis world and
 measures it: 83 full chunks a second over 400, where vanilla's Nether in the same run makes 37.
