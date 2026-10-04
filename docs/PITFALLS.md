@@ -32,6 +32,9 @@ Other mods
   feature in a biome's list is left standing.
 - Distant Horizons 3.3.3 crashes a gametest server, taking it for a dedicated one; the gametest
   run has its own `run/gametest`, without the mods dropped into `run/mods`.
+- NeoForge 26.2 no longer reads `neoforge.enabledGameTestNamespaces`: a gametest server runs every
+  loaded mod's tests, so a pack's run would run this mod's, whose world is not Nauvis there.
+  `GameTests` reads the property itself.
 
 Noise
 -----

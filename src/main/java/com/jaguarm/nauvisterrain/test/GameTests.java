@@ -39,7 +39,8 @@ import net.neoforged.neoforge.registries.DeferredRegister;
  *
  * Every test runs in vanilla's {@code minecraft:empty} structure, a point, with {@code padding}
  * blocks of room around it. A batch is an environment of its own; batches run one after another,
- * so a test that must own the world's state goes in one alone.
+ * so a test that must own the world's state goes in one alone. The tests are registered only when
+ * a run's {@code neoforge.enabledGameTestNamespaces} names the mod, or names none.
  */
 public final class GameTests {
 
@@ -117,6 +118,10 @@ public final class GameTests {
     }
 
     private void registerTests(RegisterGameTestsEvent event) {
+        String enabled = System.getProperty("neoforge.enabledGameTestNamespaces");
+        if (enabled != null && !enabled.isBlank() && !List.of(enabled.split(",")).contains(modid)) {
+            return;
+        }
         Map<String, Holder<TestEnvironmentDefinition<?>>> batches = new HashMap<>();
         for (Entry entry : entries) {
             Holder<TestEnvironmentDefinition<?>> environment = batches.computeIfAbsent(entry.batch(),
