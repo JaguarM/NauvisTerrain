@@ -23,14 +23,12 @@ import java.util.Set;
 public final class NoiseProgram {
     public static final String NAUVIS = "/nauvis_terrain/noise/nauvis.json";
 
-    /** A node's operation; the generator's names in upper case. */
+    /** A node's operation; the generator's names in upper case, and only those Nauvis reaches. */
     public enum Op {
         CONST, INPUT, POINTS, PROPERTY,
-        ADD, SUB, MUL, DIV, MOD, FMOD, POW, LT, LE, GT, GE, EQ, NE, AND, XOR, OR, NEG, NOT,
-        ABS, CEIL, FLOOR, COS, SIN, SQRT, LOG2, ATAN2, CLAMP, IF, MIN, MAX,
+        ADD, SUB, MUL, DIV, POW, GT, GE, NEG, ABS, SQRT, LOG2, CLAMP, IF, MIN, MAX,
         BASIS_NOISE, MULTIOCTAVE_NOISE, VARIABLE_PERSISTENCE_MULTIOCTAVE_NOISE, QUICK_MULTIOCTAVE_NOISE,
-        DISTANCE_FROM_NEAREST_POINT, DISTANCE_FROM_NEAREST_POINT_X, DISTANCE_FROM_NEAREST_POINT_Y,
-        RANDOM_PENALTY, SPOT_NOISE, EXPRESSION_IN_RANGE
+        DISTANCE_FROM_NEAREST_POINT, RANDOM_PENALTY, SPOT_NOISE
     }
 
     /**

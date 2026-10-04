@@ -113,10 +113,15 @@ NOT_WRITTEN = {"multisample", "ridge", "terrace", "pow_precise", "voronoi_spot_n
 BINARY_OPS = {"+": "add", "-": "sub", "*": "mul", "/": "div", "%": "mod", "%%": "fmod", "^": "pow",
               "<": "lt", "<=": "le", ">": "gt", ">=": "ge", "==": "eq", "!=": "ne",
               "&": "and", "~": "xor", "|": "or"}
-COMMUTATIVE = {"add", "mul", "eq", "ne", "and", "xor", "or", "min", "max"}
+COMMUTATIVE = {"add", "mul", "eq", "ne", "and", "xor", "or"}
+# The operations NoiseProgram.Op has: what Nauvis reaches once constants are folded.
+EVALUATED = {"const", "input", "points", "property", "add", "sub", "mul", "div", "pow", "gt", "ge", "neg", "abs",
+             "sqrt", "log2", "clamp", "if", "min", "max", "basis_noise", "multioctave_noise",
+             "variable_persistence_multioctave_noise", "quick_multioctave_noise", "distance_from_nearest_point",
+             "random_penalty", "spot_noise"}
 NOISE_OPS = {"basis_noise", "multioctave_noise", "variable_persistence_multioctave_noise",
              "quick_multioctave_noise", "distance_from_nearest_point", "distance_from_nearest_point_x",
-             "distance_from_nearest_point_y", "random_penalty", "spot_noise", "expression_in_range"}
+             "distance_from_nearest_point_y", "random_penalty", "spot_noise"}
 
 
 class GenError(Exception):
@@ -140,13 +145,23 @@ def i32(value: float) -> int:
 
 
 def _fold(op: str, v: list[float]) -> float:
+    """An operation on constants as Factorio's compiler folds it: on the numbers as floats, to a float."""
+    try:
+        return f32(_folded(op, [f32(a) for a in v]))
+    except (ValueError, ZeroDivisionError):
+        return math.nan
+    except OverflowError:
+        return math.inf
+
+
+def _folded(op: str, v: list[float]) -> float:
     if op == "add": return v[0] + v[1]
     if op == "sub": return v[0] - v[1]
     if op == "mul": return v[0] * v[1]
     if op == "div": return v[0] / v[1] if v[1] else math.copysign(math.inf, v[0]) if v[0] else math.nan
     if op == "mod": return v[0] - math.floor(v[0] / v[1]) * v[1]
     if op == "fmod": return math.fmod(v[0], v[1])
-    if op == "pow": return math.pow(v[0], v[1])
+    if op == "pow": return math.inf if v[0] == 0 and v[1] < 0 else math.pow(v[0], v[1])
     if op == "lt": return float(v[0] < v[1])
     if op == "le": return float(v[0] <= v[1])
     if op == "gt": return float(v[0] > v[1])
@@ -164,7 +179,7 @@ def _fold(op: str, v: list[float]) -> float:
     if op == "cos": return math.cos(v[0])
     if op == "sin": return math.sin(v[0])
     if op == "sqrt": return math.sqrt(v[0])
-    if op == "log2": return math.log2(v[0])
+    if op == "log2": return math.log2(v[0]) if v[0] else -math.inf
     if op == "atan2": return math.atan2(v[0], v[1])
     if op == "clamp": return min(max(v[0], v[1]), v[2])
     if op == "if": return v[1] if v[0] > 0 else v[2]
@@ -195,7 +210,8 @@ class Graph:
         return self.index[key]
 
     def const(self, value: float) -> int:
-        return self._add(["const", f32(value) + 0.0], False)
+        """A number as Factorio keeps a constant, in double: a literal's own value, a fold's float."""
+        return self._add(["const", value + 0.0], False)
 
     def value(self, n: int) -> float | None:
         node = self.nodes[n]
@@ -433,8 +449,8 @@ class Compiler:
                 raise GenError(f"{where}: spot_noise needs candidate_point_count or candidate_spot_count")
             point_count = self.graph.op("mul", spot_count, values[12])
         if spacing is None:
-            raise GenError(f"{where}: spot_noise without suggested_minimum_candidate_point_spacing "
-                           "has a default Factorio does not document")
+            raise GenError(f"{where}: spot_noise's default suggested_minimum_candidate_point_spacing "
+                           "is not written (docs/NOISE.md)")
         return values[:14] + [point_count, spacing]
 
     def variadic(self, name: str, values: list[int], where: str) -> int:
@@ -446,10 +462,26 @@ class Compiler:
         if ranges < 3 or ranges % 3:
             raise GenError(f"{where}: expression_in_range needs two numbers and three lists of one length")
         dims = ranges // 3
-        for n in values[:2] + values[2 + dims:]:
-            if self.graph.varies[n]:
-                raise GenError(f"{where}: expression_in_range's bounds must not vary across the map")
-        return self.graph.op(name, *values)
+        numbers = [self.graph.value(n) for n in values[:2] + values[2 + dims:]]
+        if any(v is None for v in numbers):
+            raise GenError(f"{where}: expression_in_range's bounds must be numbers")
+        return self.expression_in_range(numbers[0], numbers[1], values[2:2 + dims], numbers[2:2 + dims],
+                                        numbers[2 + dims:])
+
+    def expression_in_range(self, multiplier: float, maximum: float, inputs: list[int], lows: list[float],
+                            highs: list[float]) -> int:
+        """Factorio's expansion (docs/NOISE.md): per range, its half-width less the distance from its middle."""
+        result = None
+        for value, low, high in zip(inputs, lows, highs):
+            middle = self.graph.const((high + low) * 0.5)
+            half = self.graph.const((high - low) * 0.5)
+            peak = self.graph.op("sub", half, self.graph.op("abs", self.graph.op("sub", value, middle)))
+            if multiplier != 1:
+                peak = self.graph.op("mul", peak, self.graph.const(multiplier))
+            if maximum < math.inf:
+                peak = self.graph.op("min", peak, self.graph.const(maximum))
+            result = peak if result is None else self.graph.op("min", result, peak)
+        return result
 
     def bind(self, name: str, params: list[str], args, kwargs, where: str, scope) -> dict:
         if args is not None:
@@ -742,7 +774,11 @@ def build(raw: dict, terrain: dict, locale: dict, core: dict, extra_roots: tuple
         })
 
     nodes, roots = compact(compiler.graph, roots)
-    cliff_name = raw["planet"][terrain["planet"]]["map_gen_settings"]["cliff_settings"]["name"]
+    for name, root in roots.items():
+        missing = sorted({nodes[n][0] for n in cone(nodes, [root])} - EVALUATED)
+        if missing:
+            raise GenError(f"{name} reaches {', '.join(missing)}, which the evaluator does not have (docs/NOISE.md)")
+    cliff_name =raw["planet"][terrain["planet"]]["map_gen_settings"]["cliff_settings"]["name"]
     cliff = raw["cliff"][cliff_name]
     program = {
         "factorio": FACTORIO_VERSION,
@@ -818,10 +854,6 @@ def number(value: float):
         return "inf" if value > 0 else "-inf"
     if value == int(value) and abs(value) < 1 << 53:
         return int(value)
-    for digits in range(1, 18):
-        text = f"{value:.{digits}g}"
-        if f32(float(text)) == value:
-            return float(text)
     return value
 
 
@@ -869,9 +901,6 @@ def main() -> int:
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--check", action="store_true", help="fail if the program on disk differs")
     mode.add_argument("--write", action="store_true", help="write the program")
-    mode.add_argument("--calibration", metavar="FILE",
-                      help="write a program with more roots to FILE, for tools/calibrate.py")
-    parser.add_argument("--roots", default="", help="the extra roots, comma-separated")
     args = parser.parse_args()
 
     if not DATA_RAW.exists():
@@ -885,18 +914,14 @@ def main() -> int:
     terrain = json.loads(TERRAIN.read_text(encoding="utf-8"))
     try:
         parsed = parse_everything(raw)
-        program = build(raw, terrain, load_locale(LOCALE), load_locale(CORE_LOCALE),
-                        tuple(r for r in args.roots.split(",") if r))
+        program = build(raw, terrain, load_locale(LOCALE), load_locale(CORE_LOCALE))
     except GenError as e:
         print(f"gen_terrain: {e}", file=sys.stderr)
         return 1
     text = render(program)
     print(summary(program, parsed))
 
-    if args.calibration:
-        Path(args.calibration).parent.mkdir(parents=True, exist_ok=True)
-        Path(args.calibration).write_text(text, encoding="utf-8", newline="\n")
-    elif args.write:
+    if args.write:
         PROGRAM.parent.mkdir(parents=True, exist_ok=True)
         PROGRAM.write_text(text, encoding="utf-8", newline="\n")
         print(f"wrote {PROGRAM.relative_to(REPO)}")

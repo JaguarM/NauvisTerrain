@@ -46,42 +46,30 @@ expressions (`basis_noise{...}` with chosen parameters, say) can sample them thi
 `tools/oracle.py` does that without a window: it writes such a mod and a config whose write-data
 is `build/oracle/`, and `factorio.exe --config ... --create map.zip --map-gen-seed N` runs the
 mod's `on_init`, which samples and writes, in about two seconds. The game's own settings, mods and
-saves are not touched. `helpers.table_to_json` writes infinities as bare `inf`.
-`tools/calibrate.py` sets the same expressions from Factorio and from our evaluator side by side.
+saves are not touched. `calculate_tile_properties` evaluates its list as one batch, on the list
+path (`NOISE.md`). A tiles job generates the chunks over an area and reads their tiles back, the
+only window onto the grid path; a probe's own data-stage Lua can give tiles made-up autoplace
+expressions, so generated tiles show where an expression is above another. `helpers.table_to_json`
+writes infinities as bare `inf` and -0.0 as `-0`, which JSON reads as the integer 0; the oracle
+reads both back as Factorio meant them. `tools/compare.py` sets Factorio's values beside the
+evaluator's, bit for bit.
 
-What the oracle measured
-------------------------
+What the oracle checks
+----------------------
 
-- `basis_noise` is gradient noise on the integer lattice of `x · input_scale`: each of a cell's
-  four corners adds `(1 - d²)³ · (g · d)`, where `d` is the offset from the corner and `g` the
-  corner's gradient, always 4.2 long. The fit along lattice lines is exact. Its spread is 0.70,
-  its kurtosis 2.3, its peaks near ±1.75; it correlates 0.72 a quarter of a cell away, 0.19 at half
-  a cell and -0.12 at three quarters, and at a cell's centre it has half its usual spread.
-- `seed0` only matters above its low eight bits, and a `seed1` of 256 is the field of 0: Factorio
-  makes far fewer distinct fields than seeds. Seeds 1 to 99 all put the starting lake at (74, 4).
-- `multioctave_noise{octaves = n, persistence = p}`: the finest octave is `basis_noise` of the
-  same seeds at `input_scale`; each coarser one is at half the scale and `1/p` the strength, on a
-  field and lattice of its own; the sum is scaled to one octave's spread (`p^k / sqrt(Σ p^2j)`
-  from the coarsest).
-- `quick_multioctave_noise`: octave `i` is `basis_noise` of the same field at
-  `input_scale · m_in^i` times `output_scale · m_out^i`, exactly.
-- `variable_persistence_multioctave_noise`: octave `k` from 1 to `n` is the same field at
-  `input_scale / 2^k` times `output_scale · 2^n · p^(n-k)`, exactly.
-- `expression_in_range(m, top, v..., from..., to...)` is `min(top, m · min over v of
-  min(v - from, to - v))`, exactly.
-- `random_penalty` is uniform, keyed on position and `seed` but not on the map seed.
-- A tile is sampled at its corner, `x, y` its integer coordinates: the generated tiles agree with
-  the highest tile probability there on 9205 of 9216 tiles, and at the centre on 8970.
-- The starting lake is 75 tiles from the start in a direction the seed picks, floored to a tile.
-- `spot_noise`'s starting region holds the whole starting area, and a spot cut to the region's
-  target keeps its radius in proportion to the cube root of its quantity.
+- Every root of the program, the climate and every tile's, entity's and decorative's probability
+  and richness, is Factorio's bit for bit over 2311 positions for seeds 123 and 987654321.
+  `src/test/resources/factorio-values.json` holds 30 positions of it, and `EvaluatorTest` holds
+  the evaluator to them.
+- Generated tiles are the highest tile probability: with made-up expressions (`x - y` against 0,
+  `x / 64` against `y / 64`) every one of 16384 tiles agrees, ties going to `grass-1` over
+  `grass-2`. A `multioctave_noise` with `offset_x = 1000` as a tile's probability agrees with the
+  grid path on 16346 of 16384 tiles and with the list path on 9219.
+- With Nauvis's own expressions, 16352 and 16375 of 16384 generated tiles around the starts of
+  seeds 123 and 987654321 are the highest probability on the grid path. Each of the others is
+  the second highest, at a border, where Factorio's tile correction moved it (`GAPS.md`).
 - Trees: the map preview places 0.83 trees per unit of summed tree probability on land; the rest
   give way to each other. The preview places no rocks and no fish.
-
-Against it, over 16 seeds and 16k by 16k tiles, every tile's share is within half a percent of
-Factorio's (deepwater 23.2% and 22.7%, grass-1 8.1% and 8.1%, red-desert-0 5.7% and 6.0%), the
-quantiles of `elevation`, `moisture`, `aux`, `temperature`, `cliff_elevation` and `cliffiness`
-agree, and so do the ores' area and richness at the start and far out.
 
 Nauvis's map gen settings
 -------------------------

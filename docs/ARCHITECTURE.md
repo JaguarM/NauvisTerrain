@@ -30,13 +30,15 @@ A new Factorio version is a new dump and a regenerated program, never a hand edi
 Evaluation
 ----------
 
-The program runs over a batch of points at once: each node computes the whole batch before the
-next starts, and runs once per batch; what the map settings fix is computed once. A batch is a
-block of 32 by 32 tiles, Factorio's own size, and `Terrain` keeps the blocks it has made for the
-chunks that share them, so threads that make chunks side by side (Distant Horizons' among them)
-reuse each other's work. A noise octave over a batch looks each lattice corner's gradient up once
-when the batch spans few corners, as Nauvis's broad noise does. `spot_noise` runs its argument
-expressions over its own batch of candidate points. Numbers are `float`, as Factorio's are; a seed stays an exact integer.
+The program runs over a batch of positions as Factorio's engine runs it (`NOISE.md`): each node
+computes the whole batch in float before the next starts, and what the map settings fix is folded
+once, as Factorio's compiler folds it. A value depends on its batch: noise over a grid takes
+Factorio's grid path, `random_penalty` seeds itself from the batch's first position, and
+`spot_noise` reads the regions the batch's bounds reach. So the batch is Factorio's own: a block is
+a chunk, 32 by 32 tiles from a multiple of 32, evaluated as a grid, and its values are the ones
+Factorio gives that chunk. `Terrain` keeps the blocks it has made for the chunks that share them,
+so threads that make chunks side by side (Distant Horizons' among them) reuse each other's work.
+`spot_noise` runs its argument expressions over its own batch of candidate points.
 
 The noise package is plain Java (CLAUDE.md, rule 6). `./gradlew test` renders seed 123 to
 `build/nauvis-123-512.png`, each tile in its `map_color` from the dump, with each tile's share and

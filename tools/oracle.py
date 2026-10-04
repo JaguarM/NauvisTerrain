@@ -16,6 +16,7 @@ A probe file:
     {"seed": 123,
      "map_gen_settings": {...},                 optional, Factorio's format
      "probes": {"name": "expression", ...},
+     "data": "data.raw.tile['grass-1'].autoplace = ...",   optional Lua for the mod's data stage
      "jobs": [{"properties": ["name", "elevation"],
                "grid": [x0, y0, width, height, step]},     positions x0 + i·step, y0 + j·step
               {"properties": [...], "points": [[x, y], ...]},
@@ -108,7 +109,7 @@ def lua(value) -> str:
     return repr(value)
 
 
-def setup(probes: dict, jobs: list) -> Path:
+def setup(probes: dict, jobs: list, data_lua: str = "") -> Path:
     data = WORK / "data"
     mods = data / "mods"
     if mods.exists():
@@ -122,7 +123,8 @@ def setup(probes: dict, jobs: list) -> Path:
          "factorio_version": "2.0", "dependencies": ["base"]}), encoding="utf-8")
     expressions = [{"type": "noise-expression", "name": name, "expression": expression}
                    for name, expression in probes.items()]
-    (mod / "data.lua").write_text("data:extend(" + lua(expressions) + ")\n", encoding="utf-8")
+    (mod / "data.lua").write_text(("data:extend(" + lua(expressions) + ")\n" if expressions else "") + data_lua,
+                                  encoding="utf-8")
     (mod / "jobs.lua").write_text("return " + lua(jobs) + "\n", encoding="utf-8")
     (mod / "control.lua").write_text(CONTROL, encoding="utf-8")
     config = WORK / "config.ini"
@@ -133,7 +135,7 @@ def setup(probes: dict, jobs: list) -> Path:
 
 def run(spec: dict) -> list:
     """Factorio's values for a probe file's jobs."""
-    config = setup(spec.get("probes", {}), spec["jobs"])
+    config = setup(spec.get("probes", {}), spec["jobs"], spec.get("data", ""))
     output = WORK / "data" / "script-output" / "probe.json"
     if output.exists():
         output.unlink()
@@ -147,11 +149,12 @@ def run(spec: dict) -> list:
     if not output.exists():
         sys.stderr.write(done.stdout[-4000:] + done.stderr[-2000:])
         raise RuntimeError("Factorio wrote no probe output; its log is above")
-    # Factorio writes infinities and NaN as bare words, which JSON has no spelling for.
+    # Factorio writes infinities and NaN as bare words, which JSON has no spelling for, and -0.0 as
+    # -0, which JSON reads as the integer 0.
     text = re.sub(r"([\[,:])(-?)(inf|nan)\b",
                   lambda m: m.group(1) + m.group(2) + ("Infinity" if m.group(3) == "inf" else "NaN"),
                   output.read_text(encoding="utf-8"))
-    return json.loads(text)
+    return json.loads(re.sub(r"([\[,:])-0(?=[,\]}])", r"\1-0.0", text))
 
 
 def preview(seed: int, size: int = 512, out: Path | None = None, settings: dict | None = None) -> Path:

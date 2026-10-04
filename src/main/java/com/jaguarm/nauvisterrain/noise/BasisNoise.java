@@ -1,210 +1,330 @@
 package com.jaguarm.nauvisterrain.noise;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
- * Factorio's `basis_noise` and its multioctave sums, built as the oracle measured them
- * (docs/NOISE.md, the built-ins) on our own gradients: zero on the lattice, each of a cell's four
- * corners adding its gradient's dot product with the offset, weighted by `(1 - d²)³`. A batch looks
- * each lattice corner's gradient up once rather than once per position, when the batch covers few.
+ * Factorio's `basis_noise` and the built-ins made of it, as factorio.exe computes them (docs/NOISE.md,
+ * the built-ins): the seed's tables, and a batch of positions through Factorio's vector path, or
+ * through its grid path when the batch is a grid and the noise reads `x` and `y` as they are.
+ * Everything adds into `out`.
  */
 public final class BasisNoise {
-    /** Every gradient's length. */
-    static final double GRADIENT = 4.2;
-
-    private static final int DIRECTIONS = 1024;
-    private static final double[] GRADIENT_X = new double[DIRECTIONS];
-    private static final double[] GRADIENT_Y = new double[DIRECTIONS];
+    private static final float[] DEFAULT_X = new float[256];
+    private static final float[] DEFAULT_Y = new float[256];
+    private static final int TABLES_KEPT = 4096;
+    private static final Map<Long, Tables> TABLES = new ConcurrentHashMap<>();
 
     static {
-        for (int i = 0; i < DIRECTIONS; i++) {
-            double angle = 2 * Math.PI * (i + 0.5) / DIRECTIONS;
-            GRADIENT_X[i] = GRADIENT * Math.cos(angle);
-            GRADIENT_Y[i] = GRADIENT * Math.sin(angle);
+        for (int i = 0; i < 256; i++) {
+            double turns = (float) (i * 0.02454369260617026) * 0.15915494309189535;
+            DEFAULT_X[i] = (float) (cosTurns(turns) * 4.2);
+            DEFAULT_Y[i] = (float) (sinTurns(turns) * 4.2);
         }
+    }
+
+    /** The positions of a batch laid out as a chunk is: rows of x from x0, y0, each step apart. */
+    public record Grid(float x0, float y0, int width, int height, float step) {
+        int count() {
+            return width * height;
+        }
+    }
+
+    /** Noise::setSeed's tables: a byte, two permutations and the gradients in their shuffled order. */
+    record Tables(int p1, int[] p2, int[] p3, float[] gx, float[] gy) {
     }
 
     private BasisNoise() {
     }
 
-    /** One octave at already scaled coordinates. */
-    public static double sample(long seed0, long seed1, double x, double y) {
-        double fx = Math.floor(x);
-        double fy = Math.floor(y);
-        long x0 = (long) fx;
-        long y0 = (long) fy;
-        double dx = x - fx;
-        double dy = y - fy;
-        long field = Hash.mix(seed0, seed1);
-        return corner(gradient(field, x0, y0), dx, dy)
-                + corner(gradient(field, x0 + 1, y0), dx - 1, dy)
-                + corner(gradient(field, x0, y0 + 1), dx, dy - 1)
-                + corner(gradient(field, x0 + 1, y0 + 1), dx - 1, dy - 1);
+    /** The tables `basis_noise{seed0, seed1}` uses. */
+    static Tables tables(long seed0, long seed1) {
+        long s0 = (seed0 + 7 * (seed1 >>> 8)) & 0xFFFFFFFFL;
+        int s1 = (int) (seed1 & 255);
+        long key = s0 << 8 | s1;
+        Tables t = TABLES.get(key);
+        if (t == null) {
+            if (TABLES.size() >= TABLES_KEPT) {
+                TABLES.clear();
+            }
+            t = seed(s0, s1);
+            TABLES.put(key, t);
+        }
+        return t;
     }
+
+    private static Tables seed(long seed0, int seed1) {
+        RandomGenerator random = new RandomGenerator(seed0);
+        int[] first = identity();
+        random.shuffle(first);
+        int[] p2 = identity();
+        random.shuffle(p2);
+        int[] p3 = identity();
+        random.shuffle(p3);
+        int[] order = identity();
+        random.shuffle(order);
+        float[] gx = new float[256];
+        float[] gy = new float[256];
+        for (int i = 0; i < 256; i++) {
+            gx[i] = DEFAULT_X[order[i]];
+            gy[i] = DEFAULT_Y[order[i]];
+        }
+        return new Tables(first[seed1], p2, p3, gx, gy);
+    }
+
+    // -- the built-ins --------------------------------------------------------------------------
 
     /** `basis_noise`. */
-    public static double basis(long seed0, long seed1, double x, double y, double inputScale, double outputScale,
-                               double offsetX, double offsetY) {
-        return sample(seed0, seed1, (x + offsetX) * inputScale, (y + offsetY) * inputScale) * outputScale;
+    static void basis(long seed0, long seed1, float[] xs, float[] ys, Grid grid, float inputScale, float outputScale,
+                      float offsetX, float offsetY, float[] out) {
+        noise(tables(seed0, seed1), xs, ys, grid, inputScale, outputScale, offsetX, offsetY, out);
     }
 
-    /**
-     * `multioctave_noise`: octave `k` of `n`, counted from the coarsest, at `input_scale / 2^(n-1-k)`
-     * and `output_scale · p^k / sqrt(Σ p^2j)`, so the sum keeps one octave's spread. The finest is
-     * `basis_noise` with the same seeds; each coarser one is a field of its own, moved off the
-     * finest one's lattice.
-     */
-    public static double multioctave(long seed0, long seed1, double x, double y, double persistence, int octaves,
-                                     double inputScale, double outputScale, double offsetX, double offsetY) {
-        double[] out = new double[1];
-        multioctave(seed0, seed1, new float[]{(float) x}, new float[]{(float) y}, persistence, octaves, inputScale, outputScale,
-                offsetX, offsetY, out);
-        return out[0];
-    }
-
-    /** {@link #multioctave} over a batch, added into `out`. */
-    static void multioctave(long seed0, long seed1, float[] xs, float[] ys, double persistence, int octaves, double inputScale,
-                            double outputScale, double offsetX, double offsetY, double[] out) {
-        double norm = 0;
-        double weight = 1;
-        for (int k = 0; k < octaves; k++) {
-            norm += weight * weight;
-            weight *= persistence;
+    /** `multioctave_noise`: all octaves of one field, the finest first. */
+    static void multioctave(long seed0, long seed1, float[] xs, float[] ys, Grid grid, float persistence, float octaves,
+                            float inputScale, float outputScale, float offsetX, float offsetY, float[] out) {
+        Tables t = tables(seed0, seed1);
+        int n = (int) Math.ceil(octaves);
+        float inverse = 1 / persistence;
+        float scale = FastApprox.exp2f((float) n - octaves);
+        if (1 > scale) {
+            scale = 1;
+        } else if (scale >= 1.99999) {
+            scale = Float.intBitsToFloat(0x3FFFFFAC);
         }
-        double amplitude = outputScale / Math.sqrt(norm);
-        double in = inputScale / Math.pow(2, octaves - 1);
-        for (int k = 0; k < octaves; k++) {
-            int coarseness = octaves - 1 - k;
-            long field = coarseness == 0 ? seed1 : Hash.mix(seed1, coarseness);
-            octave(seed0, field, xs, ys, in, offsetX, offsetY, 0.5 * coarseness, 0.25 * coarseness, amplitude, null, out);
-            in *= 2;
-            amplitude *= persistence;
+        float amplitude = modifiedAmplitude(outputScale, n, inverse);
+        if (grid != null && inputScale > 0 && 2 * ceilCount(grid, inputScale) <= grid.count()) {
+            float x0 = (offsetX + grid.x0) / grid.step;
+            float y0 = (offsetY + grid.y0) / grid.step;
+            float step = grid.step * scale;
+            for (int k = 0; k < n; k++) {
+                float x = (float) (k * 17.17 / inputScale + x0 * step);
+                gridNoise(t, x, y0 * step, grid.width, grid.height, step, inputScale, amplitude, out);
+                step = (float) (step * 0.5);
+                amplitude = amplitude * inverse;
+            }
+            return;
         }
-    }
-
-    /**
-     * `variable_persistence_multioctave_noise`: octave `k` from 1 to `n` at `input_scale / 2^k` and
-     * `output_scale · 2^n · p^(n-k)`, all of one field.
-     */
-    public static double variablePersistence(long seed0, long seed1, double x, double y, double persistence,
-                                             int octaves, double inputScale, double outputScale,
-                                             double offsetX, double offsetY) {
-        double[] out = new double[1];
-        variablePersistence(seed0, seed1, new float[]{(float) x}, new float[]{(float) y}, new float[]{(float) persistence},
-                octaves, inputScale, outputScale, offsetX, offsetY, out);
-        return out[0];
-    }
-
-    /** {@link #variablePersistence} over a batch, each position's persistence its own, added into `out`. */
-    static void variablePersistence(long seed0, long seed1, float[] xs, float[] ys, float[] persistence, int octaves,
-                                    double inputScale, double outputScale, double offsetX, double offsetY, double[] out) {
-        double[] amplitude = new double[xs.length];
-        for (int i = 0; i < xs.length; i++) {
-            amplitude[i] = outputScale * Math.pow(2, octaves) * Math.pow(persistence[i], octaves - 1);
-        }
-        double in = inputScale / 2;
-        for (int k = 1; k <= octaves; k++) {
-            octave(seed0, seed1, xs, ys, in, offsetX, offsetY, 0, 0, 1, amplitude, out);
-            in /= 2;
+        scale = scale * inputScale;
+        float[] bx = new float[xs.length];
+        float[] by = new float[xs.length];
+        for (int k = 0; k < n; k++) {
             for (int i = 0; i < xs.length; i++) {
-                amplitude[i] /= persistence[i];
+                bx[i] = (float) (scale * xs[i] + k * 17.17);
+                by[i] = scale * ys[i];
+            }
+            vectorNoise(t, bx, by, 1, amplitude, offsetX, offsetY, out);
+            scale = (float) (scale * 0.5);
+            amplitude = amplitude * inverse;
+        }
+    }
+
+    /** `variable_persistence_multioctave_noise`: one field, each coarser octave under one more factor of persistence. */
+    static void variablePersistence(long seed0, long seed1, float[] xs, float[] ys, Grid grid, float[] persistence,
+                                    long octaves, float inputScale, float outputScale, float offsetX, float offsetY,
+                                    float[] out) {
+        Tables t = tables(seed0, seed1);
+        float scale = inputScale * 0.5f;
+        float weight = (float) (Math.pow(2, octaves) * outputScale);
+        for (long k = 1; k < octaves; k++) {
+            noise(t, xs, ys, grid, scale, 1, offsetX, offsetY, out);
+            scale = scale * 0.5f;
+            for (int i = 0; i < out.length; i++) {
+                out[i] = persistence[i] * out[i];
             }
         }
-    }
-
-    /**
-     * `quick_multioctave_noise`: octave `i` at `input_scale · m_in^i` and `output_scale · m_out^i`.
-     * Its `seed0` moves by `octave_seed0_shift` each octave, and as in Factorio that changes the
-     * field only when it carries past a multiple of 256.
-     */
-    public static double quickMultioctave(long seed0, long seed1, double x, double y, int octaves, double inputScale,
-                                          double outputScale, double offsetX, double offsetY,
-                                          double inputMultiplier, double outputMultiplier, long seed0Shift) {
-        double[] out = new double[1];
-        quickMultioctave(seed0, seed1, new float[]{(float) x}, new float[]{(float) y}, octaves, inputScale, outputScale,
-                offsetX, offsetY, inputMultiplier, outputMultiplier, seed0Shift, out);
-        return out[0];
-    }
-
-    /** {@link #quickMultioctave} over a batch, added into `out`. */
-    static void quickMultioctave(long seed0, long seed1, float[] xs, float[] ys, int octaves, double inputScale,
-                                 double outputScale, double offsetX, double offsetY, double inputMultiplier,
-                                 double outputMultiplier, long seed0Shift, double[] out) {
-        double in = inputScale;
-        double amplitude = outputScale;
-        for (int octave = 0; octave < octaves; octave++) {
-            long carried = ((seed0 & 0xFF) + octave * seed0Shift) >> 8;
-            octave((seed0 + (carried << 8)) & 0xFFFFFFFFL, seed1, xs, ys, in, offsetX, offsetY, 0, 0, amplitude, null, out);
-            in *= inputMultiplier;
-            amplitude *= outputMultiplier;
+        noise(t, xs, ys, grid, scale, 1, offsetX, offsetY, out);
+        for (int i = 0; i < out.length; i++) {
+            out[i] = weight * out[i];
         }
     }
 
-    /**
-     * One octave over a batch, added into `out`: the field of the seeds at `(x + offset) · scale +
-     * shift`, times `amplitude`, or times each position's own when `amplitudes` is given.
-     */
-    static void octave(long seed0, long seed1, float[] xs, float[] ys, double scale, double offsetX, double offsetY,
-                       double shiftX, double shiftY, double amplitude, double[] amplitudes, double[] out) {
-        int n = xs.length;
-        long field = Hash.mix(seed0, seed1);
-        double minX = Double.POSITIVE_INFINITY, maxX = Double.NEGATIVE_INFINITY;
-        double minY = Double.POSITIVE_INFINITY, maxY = Double.NEGATIVE_INFINITY;
-        for (int i = 0; i < n; i++) {
-            double x = (xs[i] + offsetX) * scale + shiftX;
-            double y = (ys[i] + offsetY) * scale + shiftY;
-            minX = Math.min(minX, x);
-            maxX = Math.max(maxX, x);
-            minY = Math.min(minY, y);
-            maxY = Math.max(maxY, y);
+    /** `quick_multioctave_noise`: one `basis_noise` per octave, its seed0 moved by the shift each time. */
+    static void quickMultioctave(long seed0, long seed1, float[] xs, float[] ys, Grid grid, long octaves, float inputScale,
+                                 float outputScale, float offsetX, float offsetY, float inputMultiplier,
+                                 float outputMultiplier, long seed0Shift, float[] out) {
+        long s0 = seed0;
+        for (long k = 0; k < octaves; k++) {
+            noise(tables(s0, seed1), xs, ys, grid, inputScale, outputScale, offsetX, offsetY, out);
+            inputScale = inputScale * inputMultiplier;
+            outputScale = outputScale * outputMultiplier;
+            s0 = (s0 + seed0Shift) & 0xFFFFFFFFL;
         }
-        long lx0 = (long) Math.floor(minX);
-        long ly0 = (long) Math.floor(minY);
-        long width = (long) Math.floor(maxX) - lx0 + 2;
-        long height = (long) Math.floor(maxY) - ly0 + 2;
-        int[] table = null;
-        if (width * height <= 4L * n + 16) {
-            table = new int[(int) (width * height)];
-            for (int gy = 0; gy < height; gy++) {
-                for (int gx = 0; gx < width; gx++) {
-                    table[gy * (int) width + gx] = gradient(field, lx0 + gx, ly0 + gy);
+    }
+
+    /** Noise::modifiedAmplitude: the finest of `n` octaves' amplitude, so their squares sum to the output scale's. */
+    static float modifiedAmplitude(float outputScale, int n, float inverse) {
+        if (inverse == 1) {
+            return (float) (outputScale / Math.sqrt(n));
+        }
+        if (inverse == 0) {
+            return outputScale;
+        }
+        float q = inverse * inverse;
+        float r = (q - 1) / (FastApprox.exp2f(FastApprox.log2f(q) * n) - 1);
+        return (float) (Math.sqrt(r) * outputScale);
+    }
+
+    // -- the two paths ----------------------------------------------------------------------------
+
+    /** Noise::noise on registers: the grid path when it applies, else the vector path. */
+    static void noise(Tables t, float[] xs, float[] ys, Grid grid, float inputScale, float outputScale, float offsetX,
+                      float offsetY, float[] out) {
+        if (grid != null && inputScale > 0 && ceilCount(grid, inputScale) <= grid.count()) {
+            gridNoise(t, offsetX + grid.x0, offsetY + grid.y0, grid.width, grid.height, grid.step, inputScale, outputScale,
+                    out);
+        } else {
+            vectorNoise(t, xs, ys, inputScale, outputScale, offsetX, offsetY, out);
+        }
+    }
+
+    /** The gradients a grid row spans, as the scratch must hold them. */
+    private static long ceilCount(Grid grid, float inputScale) {
+        return (long) (float) Math.ceil((float) grid.width * grid.step * inputScale);
+    }
+
+    /** The vector path: each position on its own. */
+    static void vectorNoise(Tables t, float[] xs, float[] ys, float inputScale, float outputScale, float offsetX,
+                            float offsetY, float[] out) {
+        int[] p2 = t.p2;
+        int[] p3 = t.p3;
+        float[] gx = t.gx;
+        float[] gy = t.gy;
+        for (int i = 0; i < xs.length; i++) {
+            float x = (offsetX + xs[i]) * inputScale;
+            float y = (offsetY + ys[i]) * inputScale;
+            float x0 = (float) Math.floor(x);
+            float x1 = (float) Math.ceil(x);
+            float y0 = (float) Math.floor(y);
+            float fx = x - x0;
+            float fy = y - y0;
+            int cx0 = p3[(int) (long) x0 & 255];
+            int cx1 = p3[(int) (long) x1 & 255];
+            long row = (long) y0;
+            int r0 = p2[(int) row & 255] ^ t.p1;
+            int r1 = p2[(int) (row + 1) & 255] ^ t.p1;
+            float l0 = lane(gx, gy, cx0 ^ r0, fx, fy);
+            float l1 = lane(gx, gy, cx1 ^ r0, fx - 1, fy);
+            float l2 = lane(gx, gy, cx0 ^ r1, fx, fy - 1);
+            float l3 = lane(gx, gy, cx1 ^ r1, fx - 1, fy - 1);
+            out[i] = ((l0 + l1) + (l2 + l3)) * outputScale + out[i];
+        }
+    }
+
+    private static float lane(float[] gx, float[] gy, int g, float dx, float dy) {
+        float d2 = dy * dy + dx * dx;
+        float t = 1 - (d2 < 1 ? d2 : 1);
+        return (dy * gy[g] + dx * gx[g]) * (t * t * t);
+    }
+
+    /** The grid path: a row's gradients are looked up once, and its lattice cells' once per row. */
+    static void gridNoise(Tables t, float x0, float y0, int width, int height, float step, float inputScale,
+                          float outputScale, float[] out) {
+        float sx0 = x0 * inputScale;
+        float fx0 = (float) Math.floor(sx0);
+        int count = (int) (long) ((float) Math.ceil((float) (width - 1) * step * inputScale + sx0) - fx0) + 1;
+        long xStart = (long) fx0;
+        long yStart = (long) (float) Math.floor(y0 * inputScale);
+        int[] cell = new int[width];
+        float[] fx = new float[width];
+        for (int i = 0; i < width; i++) {
+            float x = ((float) i * step + x0) * inputScale;
+            float floor = (float) Math.floor(x);
+            cell[i] = (int) (long) floor - (int) xStart;
+            fx[i] = x - floor;
+        }
+        float[] top = new float[2 * count + 2];
+        float[] bottom = new float[2 * count + 2];
+        gradientsLine(t, count, xStart, yStart, bottom);
+        int lastRow = -1;
+        for (int j = 0; j < height; j++) {
+            float y = ((float) j * step + y0) * inputScale;
+            float floor = (float) Math.floor(y);
+            float fy = y - floor;
+            int row = (int) (long) floor - (int) yStart;
+            if (row == lastRow + 1) {
+                float[] reused = top;
+                top = bottom;
+                bottom = reused;
+                gradientsLine(t, count, xStart, yStart + 1 + row, bottom);
+                lastRow = row;
+            } else if (row != lastRow) {
+                // Factorio's grid path leaves its remembered row as it was here.
+                gradientsLine(t, count, xStart, yStart + row, top);
+                gradientsLine(t, count, xStart, yStart + row + 1, bottom);
+            }
+            float dy1 = fy - 1;
+            float above = 1 - fy * fy;
+            float below = 1 - dy1 * dy1;
+            int lastCell = -1;
+            float gx0 = 0, gx1 = 0, gx2 = 0, gx3 = 0, ydot0 = 0, ydot1 = 0, ydot2 = 0, ydot3 = 0;
+            int at = j * width;
+            for (int i = 0; i < width; i++) {
+                int c = cell[i];
+                if (c != lastCell) {
+                    int g = 2 * c;
+                    gx0 = top[g];
+                    gx1 = top[g + 2];
+                    gx2 = bottom[g];
+                    gx3 = bottom[g + 2];
+                    ydot0 = top[g + 1] * fy;
+                    ydot1 = top[g + 3] * fy;
+                    ydot2 = bottom[g + 1] * dy1;
+                    ydot3 = bottom[g + 3] * dy1;
+                    lastCell = c;
                 }
+                float dx0 = fx[i];
+                float dx1 = fx[i] - 1;
+                float l0 = gridLane(above, dx0, gx0, ydot0);
+                float l1 = gridLane(above, dx1, gx1, ydot1);
+                float l2 = gridLane(below, dx0, gx2, ydot2);
+                float l3 = gridLane(below, dx1, gx3, ydot3);
+                out[at + i] = ((l0 + l2) + (l1 + l3)) * outputScale + out[at + i];
             }
-        }
-        for (int i = 0; i < n; i++) {
-            double x = (xs[i] + offsetX) * scale + shiftX;
-            double y = (ys[i] + offsetY) * scale + shiftY;
-            double fx = Math.floor(x);
-            double fy = Math.floor(y);
-            double dx = x - fx;
-            double dy = y - fy;
-            long cx = (long) fx;
-            long cy = (long) fy;
-            int g00, g10, g01, g11;
-            if (table != null) {
-                int at = (int) ((cy - ly0) * width + (cx - lx0));
-                g00 = table[at];
-                g10 = table[at + 1];
-                g01 = table[at + (int) width];
-                g11 = table[at + (int) width + 1];
-            } else {
-                g00 = gradient(field, cx, cy);
-                g10 = gradient(field, cx + 1, cy);
-                g01 = gradient(field, cx, cy + 1);
-                g11 = gradient(field, cx + 1, cy + 1);
-            }
-            double value = corner(g00, dx, dy) + corner(g10, dx - 1, dy) + corner(g01, dx, dy - 1) + corner(g11, dx - 1, dy - 1);
-            out[i] += value * (amplitudes == null ? amplitude : amplitudes[i]);
         }
     }
 
-    private static int gradient(long field, long x, long y) {
-        return (int) (Hash.mix(field, x * 0x632BE59BD9B4E019L + y) >>> 54);
+    private static float gridLane(float oneLessDy2, float dx, float gx, float ydot) {
+        float t = oneLessDy2 - dx * dx;
+        t = t > 0 ? t : 0;
+        return (dx * gx + ydot) * (t * t * t);
     }
 
-    private static double corner(int g, double dx, double dy) {
-        double falloff = 1 - dx * dx - dy * dy;
-        if (falloff <= 0) {
-            return 0;
+    /** Noise::gradientsLine: the gradients of `count` lattice points from `xStart` along row `y`, x and y paired. */
+    private static void gradientsLine(Tables t, int count, long xStart, long y, float[] into) {
+        int row = t.p2[(int) y & 255] ^ t.p1;
+        for (int k = 0; k < count; k++) {
+            int g = t.p3[(int) (xStart + k) & 255] ^ row;
+            into[2 * k] = t.gx[g];
+            into[2 * k + 1] = t.gy[g];
         }
-        return falloff * falloff * falloff * (GRADIENT_X[g] * dx + GRADIENT_Y[g] * dy);
+    }
+
+    /** The cosine of an angle in turns, through the engine's polynomial. */
+    static double cosTurns(double turns) {
+        return turnSine(0.25 - Math.abs(turns - Math.rint(turns)));
+    }
+
+    /** The sine of an angle in turns, through the engine's polynomial. */
+    static double sinTurns(double turns) {
+        double t = turns - 0.25;
+        return turnSine(0.25 - Math.abs(t - Math.rint(t)));
+    }
+
+    /** The engine's polynomial for sin(2π·w), w within a quarter turn of 0. */
+    private static double turnSine(double w) {
+        double s = w * w;
+        double s2 = s * s;
+        double r = (81.60201529595571 - s * 76.56887678023256) * s2 + (6.283185269630412 - s * 41.34167506665737);
+        r = r + s2 * s2 * 39.65735524898863;
+        return r * w;
+    }
+
+    private static int[] identity() {
+        int[] a = new int[256];
+        for (int i = 0; i < 256; i++) {
+            a[i] = i;
+        }
+        return a;
     }
 }

@@ -7,16 +7,17 @@ one tile to a block. `docs/NEXT.md` says what to pick up and how to run everythi
 `docs/PITFALLS.md` before writing code and `docs/API-26.2.md` before writing against any
 Minecraft API. `docs/ARCHITECTURE.md` is the rules the world is built to, `docs/FACTORIO.md` what
 Factorio's install and dump hold about Nauvis, `docs/NOISE.md` Factorio's noise language and how
-each built-in is made here, `docs/GAPS.md` what is deliberately missing.
+its engine computes each built-in, `docs/GAPS.md` what is deliberately missing.
 
 Non-negotiables
 ---------------
 
-1. **Factorio's rules, our noise.** Every expression, constant, autoplace rule and map setting is
-   Factorio's, read from its own `data.raw`. The engine's built-ins (`basis_noise`, `spot_noise`
-   and the rest) are unpublished, so they are written here to Factorio's documentation and
-   calibrated against Factorio's own output. A seed makes a Nauvis that looks and plays like
-   Factorio's, not the map Factorio makes from that seed.
+1. **Factorio's rules, Factorio's noise.** Every expression, constant, autoplace rule and map
+   setting is Factorio's, read from its own `data.raw`, and the engine's built-ins
+   (`basis_noise`, `spot_noise` and the rest) are computed as `factorio.exe` computes them, read
+   from the binary through its PDB (`reference/factorio/engine/`) and held to Factorio's own
+   values bit for bit (`tools/compare.py`). A seed makes the map Factorio makes from it, except
+   where `docs/GAPS.md` says otherwise.
 2. **Generated, never typed.** `tools/gen_terrain.py` turns `reference/factorio/data-raw-<version>.json`
    plus `data/terrain.json` into the noise program the mod runs. It has `--check`, which diffs
    against disk, and `./gradlew build` runs it.

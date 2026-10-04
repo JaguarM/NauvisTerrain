@@ -1,5 +1,9 @@
 package com.jaguarm.nauvisterrain.noise;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -7,6 +11,9 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -49,84 +56,68 @@ class EvaluatorTest {
     }
 
     @Test
-    void basisNoiseIsZeroOnTheLattice() {
-        for (int x = -3; x <= 3; x++) {
-            for (int y = -3; y <= 3; y++) {
-                assertEquals(0, BasisNoise.basis(123, 7, x * 8, y * 8, 1 / 8.0, 1, 0, 0), 1e-12);
+    void everyRootIsFactoriosBitForBit() throws IOException {
+        JsonObject fixture;
+        try (InputStream in = EvaluatorTest.class.getResourceAsStream("/factorio-values.json")) {
+            fixture = JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8)).getAsJsonObject();
+        }
+        JsonArray positions = fixture.getAsJsonArray("positions");
+        float[] xs = new float[positions.size()];
+        float[] ys = new float[positions.size()];
+        for (int i = 0; i < xs.length; i++) {
+            xs[i] = positions.get(i).getAsJsonArray().get(0).getAsFloat();
+            ys[i] = positions.get(i).getAsJsonArray().get(1).getAsFloat();
+        }
+        for (Map.Entry<String, JsonElement> seed : fixture.getAsJsonObject("seeds").entrySet()) {
+            JsonObject expected = seed.getValue().getAsJsonObject();
+            String[] roots = expected.keySet().toArray(new String[0]);
+            float[][] values = new Evaluator(program, MapSettings.defaults(Long.parseLong(seed.getKey()))).evaluate(roots, xs, ys);
+            for (int r = 0; r < roots.length; r++) {
+                JsonArray theirs = expected.getAsJsonArray(roots[r]);
+                for (int i = 0; i < xs.length; i++) {
+                    float want = factorio(theirs.get(i));
+                    float got = values[r][i];
+                    assertTrue(Float.floatToIntBits(want) == Float.floatToIntBits(got),
+                            roots[r] + " at seed " + seed.getKey() + ", " + xs[i] + ", " + ys[i] + ": Factorio " + want + ", ours " + got);
+                }
             }
         }
-        assertTrue(Math.abs(BasisNoise.basis(123, 7, 4, 4, 1 / 8.0, 1, 0, 0)) > 0);
     }
 
-    @Test
-    void basisNoiseHasFactoriosSpread() {
-        double sum = 0, sum2 = 0, sum4 = 0, max = 0;
-        int n = 0;
-        for (int j = 0; j < 300; j++) {
-            for (int i = 0; i < 300; i++) {
-                double v = BasisNoise.basis(77, 5, i + 0.37, j + 0.71, 1 / 16.0, 1, 0, 0);
-                sum += v;
-                sum2 += v * v;
-                sum4 += v * v * v * v;
-                max = Math.max(max, Math.abs(v));
-                n++;
-            }
+    private static float factorio(JsonElement e) {
+        if (e.getAsJsonPrimitive().isString()) {
+            return switch (e.getAsString()) {
+                case "inf" -> Float.POSITIVE_INFINITY;
+                case "-inf" -> Float.NEGATIVE_INFINITY;
+                default -> Float.NaN;
+            };
         }
-        double variance = sum2 / n - (sum / n) * (sum / n);
-        // The oracle's numbers for Factorio's own: a spread of 0.70, kurtosis 2.3, peaks near 1.75.
-        assertEquals(0.70, Math.sqrt(variance), 0.05);
-        assertEquals(2.3, sum4 / n / (variance * variance), 0.15);
-        assertTrue(max < 1.9 && max > 1.5, "peak " + max);
+        return e.getAsFloat();
     }
 
     @Test
-    void multioctaveSumsKeepFactoriosShapes() {
-        double x = 13.75, y = -41.25;
-        // Variable persistence: octave k of n at input_scale / 2^k, weighted 2^n · p^(n-k), one field.
-        assertEquals(2.8 * BasisNoise.basis(9, 3, x, y, 1 / 32.0, 1, 0, 0) + 4 * BasisNoise.basis(9, 3, x, y, 1 / 64.0, 1, 0, 0),
-                BasisNoise.variablePersistence(9, 3, x, y, 0.7, 2, 1 / 16.0, 1, 0, 0), 1e-6);
-        // Quick: octave i at input_scale · m_in^i and output_scale · m_out^i, one field while seed0 does not carry.
-        assertEquals(BasisNoise.basis(9, 3, x, y, 1 / 16.0, 1, 0, 0) + 2 * BasisNoise.basis(9, 3, x, y, 1 / 32.0, 1, 0, 0),
-                BasisNoise.quickMultioctave(9, 3, x, y, 2, 1 / 16.0, 1, 0, 0, 0.5, 2, 1), 1e-9);
-        // Regular: as spread out as one octave, whatever the octaves and persistence.
-        double sum2 = 0;
-        int n = 0;
-        for (int j = 0; j < 200; j++) {
-            for (int i = 0; i < 200; i++) {
-                double v = BasisNoise.multioctave(11, 2, i * 3.1, j * 3.1, 0.7, 4, 1 / 8.0, 1, 0, 0);
-                sum2 += v * v;
-                n++;
-            }
+    void theStartingLakeIsSeventyFiveTilesOut() {
+        for (long seed : new long[]{1, 123, 340}) {
+            assertEquals(new MapSettings.Point(74, 4), new Evaluator(program, MapSettings.defaults(seed)).points("starting_lake_positions").get(0));
         }
-        assertEquals(0.70, Math.sqrt(sum2 / n), 0.07);
+        MapSettings.Point lake = new Evaluator(program, MapSettings.defaults(4_000_000_000L)).points("starting_lake_positions").get(0);
+        assertEquals(75, Math.hypot(lake.x(), lake.y()), 1.5);
     }
 
     @Test
-    void theStartingLakeIsATileSeventyFiveTilesOut() {
-        for (long seed : new long[]{1, 123, 4_000_000_000L}) {
-            MapSettings.Point lake = new Evaluator(program, MapSettings.defaults(seed)).points("starting_lake_positions").get(0);
-            assertEquals(Math.floor(lake.x()), lake.x());
-            assertEquals(Math.floor(lake.y()), lake.y());
-            assertEquals(75, Math.hypot(lake.x(), lake.y()), 1.5);
+    void seedsBelow341ShareTheirNoiseButNotTheirOres() {
+        float[][] g = grid(-64, -64, 128);
+        for (int i = 0; i < g[0].length; i++) {
+            g[0][i] *= 32;
+            g[1][i] *= 32;
         }
-    }
-
-    @Test
-    void oneSeedPairIsOneField() {
-        double a = BasisNoise.basis(5, 9, 10.3, -7.1, 1 / 16.0, 1, 0, 0);
-        assertEquals(a, BasisNoise.basis(5, 9, 10.3, -7.1, 1 / 16.0, 1, 0, 0));
-        assertTrue(a != BasisNoise.basis(5, 10, 10.3, -7.1, 1 / 16.0, 1, 0, 0));
-        assertTrue(a != BasisNoise.basis(6, 9, 10.3, -7.1, 1 / 16.0, 1, 0, 0));
-    }
-
-    @Test
-    void aSeedMakesOneMapAndAnotherSeedAnother() {
-        float[][] g = grid(-64, -64, 64);
-        float[] a = new Evaluator(program, MapSettings.defaults(123)).evaluate("elevation", g[0], g[1]);
-        float[] b = new Evaluator(program, MapSettings.defaults(123)).evaluate("elevation", g[0], g[1]);
-        float[] c = new Evaluator(program, MapSettings.defaults(124)).evaluate("elevation", g[0], g[1]);
-        assertArrayEquals(a, b);
-        assertFalse(java.util.Arrays.equals(a, c));
+        String[] roots = {"elevation", "entity:iron-ore:probability"};
+        float[][] a = new Evaluator(program, MapSettings.defaults(123)).evaluate(roots, g[0], g[1]);
+        float[][] b = new Evaluator(program, MapSettings.defaults(124)).evaluate(roots, g[0], g[1]);
+        float[][] c = new Evaluator(program, MapSettings.defaults(123456)).evaluate(roots, g[0], g[1]);
+        assertArrayEquals(a[0], b[0]);
+        assertFalse(java.util.Arrays.equals(a[1], b[1]));
+        assertFalse(java.util.Arrays.equals(a[0], c[0]));
     }
 
     @Test

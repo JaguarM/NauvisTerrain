@@ -1,5 +1,6 @@
 package com.jaguarm.nauvisterrain.noise;
 
+import com.jaguarm.nauvisterrain.noise.BasisNoise.Grid;
 import com.jaguarm.nauvisterrain.noise.MapSettings.Point;
 import com.jaguarm.nauvisterrain.noise.NoiseProgram.Node;
 import com.jaguarm.nauvisterrain.noise.NoiseProgram.Op;
@@ -11,12 +12,13 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * A noise program under one set of map settings, run over batches of positions. Each node computes
- * the whole batch before the next starts; what does not vary across the map is computed once.
- * Safe to use from several threads at once.
+ * A noise program under one set of map settings, run over batches of positions as Factorio runs
+ * it (docs/NOISE.md): each node computes the whole batch in float before the next starts, and
+ * what the map settings fix is folded once, as Factorio's compiler folds it. Safe to use from
+ * several threads at once.
  */
 public final class Evaluator {
-    /** How far from its starting position the engine's starting lake lies, before it is floored to a tile. */
+    /** How far from its starting position the engine's starting lake lies. */
     static final double STARTING_LAKE_DISTANCE = 75;
 
     public final NoiseProgram program;
@@ -25,10 +27,14 @@ public final class Evaluator {
     /** Each node's stand-in once the map settings have picked every property's value. */
     private final int[] target;
     private final boolean[] varies;
+    /** What a node that does not vary is, as Factorio keeps a constant: a double, a float once folded. */
     private final double[] uniform;
+    private final SpotNoise.Call[] spotCalls;
     private final Map<String, List<Point>> points;
     private final SpotNoise spotNoise = new SpotNoise(this);
     private final Map<List<Integer>, int[]> orders = new ConcurrentHashMap<>();
+    private final int inputX;
+    private final int inputY;
 
     public Evaluator(NoiseProgram program, MapSettings settings) {
         this.program = program;
@@ -40,14 +46,21 @@ public final class Evaluator {
         target = new int[count];
         varies = new boolean[count];
         uniform = new double[count];
+        int x = -1, y = -1;
         for (int n = 0; n < count; n++) {
             target[n] = resolve(n);
+            if (nodes[n].op() == Op.INPUT) {
+                x = nodes[n].name().equals("x") ? n : x;
+                y = nodes[n].name().equals("y") ? n : y;
+            }
         }
+        inputX = x;
+        inputY = y;
         for (int n = 0; n < count; n++) {
             Node node = nodes[n];
             varies[n] = switch (node.op()) {
                 case CONST, POINTS -> false;
-                case INPUT -> node.name().equals("x") || node.name().equals("y");
+                case INPUT -> n == inputX || n == inputY;
                 case PROPERTY -> varies[target[n]];
                 case SPOT_NOISE -> varies[target[node.args()[0]]] || varies[target[node.args()[1]]];
                 default -> {
@@ -59,32 +72,50 @@ public final class Evaluator {
                 }
             };
         }
+        spotCalls = new SpotNoise.Call[count];
         for (int n = 0; n < count; n++) {
+            if (nodes[n].op() == Op.SPOT_NOISE && target[n] == n) {
+                spotCalls[n] = spotCall(n);
+            }
             if (!varies[n] && target[n] == n) {
                 uniform[n] = constant(n);
             }
         }
     }
 
-    /** The named roots over a batch of positions, one array per root. */
+    /** The named roots over a list of positions, one array per root. */
     public float[][] evaluate(String[] roots, float[] xs, float[] ys) {
-        int[] ids = new int[roots.length];
-        for (int i = 0; i < roots.length; i++) {
-            ids[i] = program.root(roots[i]);
-        }
-        return evaluateNodes(ids, xs, ys);
+        return evaluateNodes(ids(roots), xs, ys, null);
     }
 
     public float[] evaluate(String root, float[] xs, float[] ys) {
         return evaluate(new String[]{root}, xs, ys)[0];
     }
 
-    /** Nodes by number over a batch of positions. */
-    float[][] evaluateNodes(int[] ids, float[] xs, float[] ys) {
+    /**
+     * The named roots over a grid of positions laid out as Factorio lays out a chunk: rows of x
+     * from x0, y0, each step apart. Noise that reads `x` and `y` as they are takes Factorio's grid path.
+     */
+    public float[][] evaluateGrid(String[] roots, float x0, float y0, int width, int height, float step) {
+        Grid grid = new Grid(x0, y0, width, height, step);
+        float[] xs = new float[width * height];
+        float[] ys = new float[width * height];
+        for (int j = 0, k = 0; j < height; j++) {
+            float y = (float) j * step + y0;
+            for (int i = 0; i < width; i++, k++) {
+                xs[k] = (float) i * step + x0;
+                ys[k] = y;
+            }
+        }
+        return evaluateNodes(ids(roots), xs, ys, grid);
+    }
+
+    /** Nodes by number over one batch of positions. */
+    float[][] evaluateNodes(int[] ids, float[] xs, float[] ys, Grid grid) {
         int n = xs.length;
         float[][] values = new float[nodes.length][];
         for (int id : order(ids)) {
-            values[id] = compute(id, values, xs, ys);
+            values[id] = compute(id, values, xs, ys, grid);
         }
         float[][] out = new float[ids.length][];
         for (int i = 0; i < ids.length; i++) {
@@ -92,15 +123,6 @@ public final class Evaluator {
             out[i] = varies[t] ? values[t] : filled(uniform[t], n);
         }
         return out;
-    }
-
-    /** A value the map settings fix: the same at every position. */
-    public double uniformValue(String root) {
-        int t = target[program.root(root)];
-        if (varies[t]) {
-            throw new IllegalArgumentException(root + " varies across the map");
-        }
-        return uniform[t];
     }
 
     public List<Point> points(String name) {
@@ -112,6 +134,14 @@ public final class Evaluator {
     }
 
     // -- set-up -------------------------------------------------------------------------------
+
+    private int[] ids(String[] roots) {
+        int[] ids = new int[roots.length];
+        for (int i = 0; i < roots.length; i++) {
+            ids[i] = program.root(roots[i]);
+        }
+        return ids;
+    }
 
     private int resolve(int n) {
         while (nodes[n].op() == Op.PROPERTY) {
@@ -126,14 +156,18 @@ public final class Evaluator {
         return n;
     }
 
-    /** The engine's starting lakes: one per starting position, in a direction the seed picks, on a tile corner. */
+    /**
+     * MapGenSettings::getStartingLakePositions: one per starting position, 75 tiles out in a
+     * direction the map seed's random generator draws, truncated to a tile.
+     */
     private static List<Point> startingLakes(MapSettings settings) {
+        RandomGenerator random = new RandomGenerator(settings.seed());
         List<Point> lakes = new ArrayList<>();
-        for (int i = 0; i < settings.startingPositions().size(); i++) {
-            Point start = settings.startingPositions().get(i);
-            double angle = 2 * Math.PI * Hash.unit(Hash.mix(settings.seed(), i));
-            lakes.add(new Point(Math.floor(start.x() + STARTING_LAKE_DISTANCE * Math.cos(angle)),
-                    Math.floor(start.y() + STARTING_LAKE_DISTANCE * Math.sin(angle))));
+        for (Point start : settings.startingPositions()) {
+            float angle = (float) (random.next() * 0x1p-32 * 6.283185307179586 + 0.0);
+            double turns = angle * 0.15915494309189535;
+            lakes.add(new Point((int) (BasisNoise.cosTurns(turns) * STARTING_LAKE_DISTANCE + fixed(start.x()) * 0x1p-8f),
+                    (int) (BasisNoise.sinTurns(turns) * STARTING_LAKE_DISTANCE + fixed(start.y()) * 0x1p-8f)));
         }
         return List.copyOf(lakes);
     }
@@ -156,7 +190,7 @@ public final class Evaluator {
         };
     }
 
-    /** A node that does not vary, in double precision so a seed stays exact. */
+    /** A node that does not vary, folded as Factorio's compiler folds it: on its arguments as floats, to a float. */
     private double constant(int n) {
         Node node = nodes[n];
         int[] a = node.args();
@@ -164,62 +198,45 @@ public final class Evaluator {
             case CONST -> node.value();
             case INPUT -> input(node.name());
             case POINTS -> 0;
-            case ADD -> u(a[0]) + u(a[1]);
-            case SUB -> u(a[0]) - u(a[1]);
-            case MUL -> u(a[0]) * u(a[1]);
-            case DIV -> u(a[0]) / u(a[1]);
-            case MOD -> mod(u(a[0]), u(a[1]));
-            case FMOD -> u(a[0]) % u(a[1]);
-            case POW -> Math.pow(u(a[0]), u(a[1]));
-            case LT -> bool(u(a[0]) < u(a[1]));
-            case LE -> bool(u(a[0]) <= u(a[1]));
-            case GT -> bool(u(a[0]) > u(a[1]));
-            case GE -> bool(u(a[0]) >= u(a[1]));
-            case EQ -> bool(u(a[0]) == u(a[1]));
-            case NE -> bool(u(a[0]) != u(a[1]));
-            case AND -> (int) u(a[0]) & (int) u(a[1]);
-            case XOR -> (int) u(a[0]) ^ (int) u(a[1]);
-            case OR -> (int) u(a[0]) | (int) u(a[1]);
-            case NEG -> -u(a[0]);
-            case NOT -> ~(int) u(a[0]);
-            case ABS -> Math.abs(u(a[0]));
-            case CEIL -> Math.ceil(u(a[0]));
-            case FLOOR -> Math.floor(u(a[0]));
-            case COS -> Math.cos(u(a[0]));
-            case SIN -> Math.sin(u(a[0]));
-            case SQRT -> Math.sqrt(u(a[0]));
-            case LOG2 -> Math.log(u(a[0])) / Math.log(2);
-            case ATAN2 -> Math.atan2(u(a[0]), u(a[1]));
-            case CLAMP -> Math.min(Math.max(u(a[0]), u(a[1])), u(a[2]));
-            case IF -> u(a[0]) > 0 ? u(a[1]) : u(a[2]);
-            case MIN -> {
-                double m = u(a[0]);
+            case ADD -> f(a[0]) + f(a[1]);
+            case SUB -> f(a[0]) - f(a[1]);
+            case MUL -> f(a[0]) * f(a[1]);
+            case DIV -> f(a[0]) / f(a[1]);
+            case POW -> (float) Math.pow(f(a[0]), f(a[1]));
+            case GT -> f(a[0]) > f(a[1]) ? 1 : 0;
+            case GE -> f(a[0]) >= f(a[1]) ? 1 : 0;
+            case NEG -> -f(a[0]);
+            case ABS -> Math.abs(f(a[0]));
+            case SQRT -> (float) Math.sqrt(f(a[0]));
+            case LOG2 -> log2(f(a[0]));
+            case CLAMP -> clamp(f(a[0]), f(a[1]), f(a[2]));
+            case IF -> f(a[0]) > 0 ? f(a[1]) : f(a[2]);
+            case MIN, MAX -> {
+                float m = f(a[0]);
                 for (int i = 1; i < a.length; i++) {
-                    m = Math.min(m, u(a[i]));
-                }
-                yield m;
-            }
-            case MAX -> {
-                double m = u(a[0]);
-                for (int i = 1; i < a.length; i++) {
-                    m = Math.max(m, u(a[i]));
+                    m = node.op() == Op.MIN ? min(m, f(a[i])) : max(m, f(a[i]));
                 }
                 yield m;
             }
             default -> {
                 float[] zero = {0};
-                float[][] values = new float[nodes.length][];
-                yield compute(n, values, zero, zero)[0];
+                yield compute(n, new float[nodes.length][], zero, zero, null)[0];
             }
         };
     }
 
-    private double u(int n) {
-        return uniform[target[n]];
+    /** A constant as the float a register holds. */
+    private float f(int n) {
+        return (float) uniform[target[n]];
     }
 
-    private long seed(int n) {
-        return (long) u(n) & 0xFFFFFFFFL;
+    /** A constant where the engine wants an unsigned 32-bit integer: NaN and below 1 are 0, and it stops at 2^32 - 1. */
+    private long uint32(int n) {
+        double v = uniform[target[n]];
+        if (!(v > 0)) {
+            return 0;
+        }
+        return v >= 4294967295.0 ? 0xFFFFFFFFL : (long) v;
     }
 
     /** The varying nodes the given ones reach, in order. `spot_noise` reaches only its position. */
@@ -262,15 +279,23 @@ public final class Evaluator {
         });
     }
 
+    /** A `spot_noise` node's constants, converted as SpotNoise's constructor converts them. */
+    private SpotNoise.Call spotCall(int id) {
+        int[] a = nodes[id].args();
+        return new SpotNoise.Call(id, target[a[2]], target[a[3]], target[a[4]], target[a[5]], uint32(a[6]), uint32(a[7]),
+                f(a[8]), f(a[9]), uint32(a[10]), uint32(a[11]), uint32(a[12]), uniform[target[a[13]]] > 0, uint32(a[14]),
+                f(a[15]));
+    }
+
     // -- a batch ----------------------------------------------------------------------------
 
-    private float[] compute(int id, float[][] values, float[] xs, float[] ys) {
+    private float[] compute(int id, float[][] values, float[] xs, float[] ys, Grid grid) {
         Node node = nodes[id];
         int n = xs.length;
         int[] a = node.args();
         float[] out = new float[n];
         switch (node.op()) {
-            case INPUT -> System.arraycopy(node.name().equals("x") ? xs : ys, 0, out, 0, n);
+            case INPUT -> System.arraycopy(id == inputX ? xs : ys, 0, out, 0, n);
             case ADD -> {
                 float[] p = v(a[0], values, n), q = v(a[1], values, n);
                 for (int i = 0; i < n; i++) out[i] = p[i] + q[i];
@@ -287,72 +312,25 @@ public final class Evaluator {
                 float[] p = v(a[0], values, n), q = v(a[1], values, n);
                 for (int i = 0; i < n; i++) out[i] = p[i] / q[i];
             }
-            case MOD -> {
-                float[] p = v(a[0], values, n), q = v(a[1], values, n);
-                for (int i = 0; i < n; i++) out[i] = (float) mod(p[i], q[i]);
-            }
-            case FMOD -> {
-                float[] p = v(a[0], values, n), q = v(a[1], values, n);
-                for (int i = 0; i < n; i++) out[i] = p[i] % q[i];
-            }
             case POW -> {
                 float[] p = v(a[0], values, n), q = v(a[1], values, n);
-                for (int i = 0; i < n; i++) out[i] = (float) Math.pow(p[i], q[i]);
+                for (int i = 0; i < n; i++) out[i] = FastApprox.pow(p[i], q[i]);
             }
-            case LT, LE, GT, GE, EQ, NE -> {
+            case GT -> {
                 float[] p = v(a[0], values, n), q = v(a[1], values, n);
-                Op op = node.op();
-                for (int i = 0; i < n; i++) {
-                    boolean r = switch (op) {
-                        case LT -> p[i] < q[i];
-                        case LE -> p[i] <= q[i];
-                        case GT -> p[i] > q[i];
-                        case GE -> p[i] >= q[i];
-                        case EQ -> p[i] == q[i];
-                        default -> p[i] != q[i];
-                    };
-                    out[i] = r ? 1 : 0;
-                }
+                for (int i = 0; i < n; i++) out[i] = p[i] > q[i] ? 1 : 0;
             }
-            case AND -> {
+            case GE -> {
                 float[] p = v(a[0], values, n), q = v(a[1], values, n);
-                for (int i = 0; i < n; i++) out[i] = (int) p[i] & (int) q[i];
-            }
-            case XOR -> {
-                float[] p = v(a[0], values, n), q = v(a[1], values, n);
-                for (int i = 0; i < n; i++) out[i] = (int) p[i] ^ (int) q[i];
-            }
-            case OR -> {
-                float[] p = v(a[0], values, n), q = v(a[1], values, n);
-                for (int i = 0; i < n; i++) out[i] = (int) p[i] | (int) q[i];
+                for (int i = 0; i < n; i++) out[i] = p[i] >= q[i] ? 1 : 0;
             }
             case NEG -> {
                 float[] p = v(a[0], values, n);
                 for (int i = 0; i < n; i++) out[i] = -p[i];
             }
-            case NOT -> {
-                float[] p = v(a[0], values, n);
-                for (int i = 0; i < n; i++) out[i] = ~(int) p[i];
-            }
             case ABS -> {
                 float[] p = v(a[0], values, n);
                 for (int i = 0; i < n; i++) out[i] = Math.abs(p[i]);
-            }
-            case CEIL -> {
-                float[] p = v(a[0], values, n);
-                for (int i = 0; i < n; i++) out[i] = (float) Math.ceil(p[i]);
-            }
-            case FLOOR -> {
-                float[] p = v(a[0], values, n);
-                for (int i = 0; i < n; i++) out[i] = (float) Math.floor(p[i]);
-            }
-            case COS -> {
-                float[] p = v(a[0], values, n);
-                for (int i = 0; i < n; i++) out[i] = (float) Math.cos(p[i]);
-            }
-            case SIN -> {
-                float[] p = v(a[0], values, n);
-                for (int i = 0; i < n; i++) out[i] = (float) Math.sin(p[i]);
             }
             case SQRT -> {
                 float[] p = v(a[0], values, n);
@@ -360,15 +338,11 @@ public final class Evaluator {
             }
             case LOG2 -> {
                 float[] p = v(a[0], values, n);
-                for (int i = 0; i < n; i++) out[i] = (float) (Math.log(p[i]) / Math.log(2));
-            }
-            case ATAN2 -> {
-                float[] p = v(a[0], values, n), q = v(a[1], values, n);
-                for (int i = 0; i < n; i++) out[i] = (float) Math.atan2(p[i], q[i]);
+                for (int i = 0; i < n; i++) out[i] = log2(p[i]);
             }
             case CLAMP -> {
                 float[] p = v(a[0], values, n), lo = v(a[1], values, n), hi = v(a[2], values, n);
-                for (int i = 0; i < n; i++) out[i] = Math.min(Math.max(p[i], lo[i]), hi[i]);
+                for (int i = 0; i < n; i++) out[i] = clamp(p[i], lo[i], hi[i]);
             }
             case IF -> {
                 float[] c = v(a[0], values, n), p = v(a[1], values, n), q = v(a[2], values, n);
@@ -379,95 +353,59 @@ public final class Evaluator {
                 boolean min = node.op() == Op.MIN;
                 for (int k = 1; k < a.length; k++) {
                     float[] p = v(a[k], values, n);
-                    for (int i = 0; i < n; i++) out[i] = min ? Math.min(out[i], p[i]) : Math.max(out[i], p[i]);
+                    for (int i = 0; i < n; i++) out[i] = min ? min(out[i], p[i]) : max(out[i], p[i]);
                 }
             }
-            case BASIS_NOISE -> {
-                double[] sum = new double[n];
-                BasisNoise.octave(seed(a[2]), seed(a[3]), v(a[0], values, n), v(a[1], values, n), u(a[4]), u(a[6]), u(a[7]),
-                        0, 0, u(a[5]), null, sum);
-                narrow(sum, out);
-            }
-            case MULTIOCTAVE_NOISE -> {
-                double[] sum = new double[n];
-                BasisNoise.multioctave(seed(a[3]), seed(a[4]), v(a[0], values, n), v(a[1], values, n), u(a[2]), (int) u(a[5]),
-                        u(a[6]), u(a[7]), u(a[8]), u(a[9]), sum);
-                narrow(sum, out);
-            }
-            case VARIABLE_PERSISTENCE_MULTIOCTAVE_NOISE -> {
-                double[] sum = new double[n];
-                BasisNoise.variablePersistence(seed(a[3]), seed(a[4]), v(a[0], values, n), v(a[1], values, n),
-                        v(a[2], values, n), (int) u(a[5]), u(a[6]), u(a[7]), u(a[8]), u(a[9]), sum);
-                narrow(sum, out);
-            }
-            case QUICK_MULTIOCTAVE_NOISE -> {
-                double[] sum = new double[n];
-                BasisNoise.quickMultioctave(seed(a[2]), seed(a[3]), v(a[0], values, n), v(a[1], values, n), (int) u(a[4]),
-                        u(a[5]), u(a[6]), u(a[7]), u(a[8]), u(a[9]), u(a[10]), (long) u(a[11]), sum);
-                narrow(sum, out);
-            }
-            case DISTANCE_FROM_NEAREST_POINT, DISTANCE_FROM_NEAREST_POINT_X, DISTANCE_FROM_NEAREST_POINT_Y -> {
-                float[] x = v(a[0], values, n), y = v(a[1], values, n);
-                List<Point> list = points(nodes[target[a[2]]].name());
-                double maximum = node.op() == Op.DISTANCE_FROM_NEAREST_POINT ? u(a[3]) : Double.POSITIVE_INFINITY;
-                for (int i = 0; i < n; i++) {
-                    double best = Double.POSITIVE_INFINITY, bx = 0, by = 0;
-                    for (Point p : list) {
-                        double d = Math.hypot(x[i] - p.x(), y[i] - p.y());
-                        if (d < best) {
-                            best = d;
-                            bx = x[i] - p.x();
-                            by = y[i] - p.y();
-                        }
-                    }
-                    out[i] = (float) switch (node.op()) {
-                        case DISTANCE_FROM_NEAREST_POINT -> Math.min(best, maximum);
-                        case DISTANCE_FROM_NEAREST_POINT_X -> bx;
-                        default -> by;
-                    };
-                }
-            }
-            case RANDOM_PENALTY -> {
-                float[] x = v(a[0], values, n), y = v(a[1], values, n), source = v(a[2], values, n);
-                long seed = (long) u(a[3]);
-                double amplitude = u(a[4]);
-                for (int i = 0; i < n; i++) {
-                    out[i] = source[i] > 0
-                            ? (float) (source[i] - amplitude * RandomPenalty.unit(seed, x[i], y[i]))
-                            : source[i];
-                }
-            }
-            case SPOT_NOISE -> spotNoise.evaluate(spotCall(id), v(a[0], values, n), v(a[1], values, n), out);
-            case EXPRESSION_IN_RANGE -> {
-                int dims = (a.length - 2) / 3;
-                double multiplier = u(a[0]), maximum = u(a[1]);
-                float[][] inputs = new float[dims][];
-                double[] from = new double[dims];
-                double[] to = new double[dims];
-                for (int d = 0; d < dims; d++) {
-                    inputs[d] = v(a[2 + d], values, n);
-                    from[d] = u(a[2 + dims + d]);
-                    to[d] = u(a[2 + 2 * dims + d]);
-                }
-                for (int i = 0; i < n; i++) {
-                    double inside = Double.POSITIVE_INFINITY;
-                    for (int d = 0; d < dims; d++) {
-                        double value = inputs[d][i];
-                        inside = Math.min(inside, Math.min(value - from[d], to[d] - value));
-                    }
-                    out[i] = (float) Math.min(maximum, multiplier * inside);
-                }
-            }
+            case BASIS_NOISE -> BasisNoise.basis(uint32(a[2]), uint32(a[3]), v(a[0], values, n), v(a[1], values, n),
+                    grid(grid, a), f(a[4]), f(a[5]), f(a[6]), f(a[7]), out);
+            case MULTIOCTAVE_NOISE -> BasisNoise.multioctave(uint32(a[3]), uint32(a[4]), v(a[0], values, n),
+                    v(a[1], values, n), grid(grid, a), f(a[2]), f(a[5]), f(a[6]), f(a[7]), f(a[8]), f(a[9]), out);
+            case VARIABLE_PERSISTENCE_MULTIOCTAVE_NOISE -> BasisNoise.variablePersistence(uint32(a[3]), uint32(a[4]),
+                    v(a[0], values, n), v(a[1], values, n), grid(grid, a), v(a[2], values, n), uint32(a[5]), f(a[6]), f(a[7]),
+                    f(a[8]), f(a[9]), out);
+            case QUICK_MULTIOCTAVE_NOISE -> BasisNoise.quickMultioctave(uint32(a[2]), uint32(a[3]), v(a[0], values, n),
+                    v(a[1], values, n), grid(grid, a), uint32(a[4]), f(a[5]), f(a[6]), f(a[7]), f(a[8]), f(a[9]), f(a[10]),
+                    uint32(a[11]), out);
+            case DISTANCE_FROM_NEAREST_POINT -> distance(v(a[0], values, n), v(a[1], values, n),
+                    points(nodes[target[a[2]]].name()), f(a[3]), out);
+            case RANDOM_PENALTY -> RandomPenalty.apply(v(a[0], values, n), v(a[1], values, n), v(a[2], values, n),
+                    uint32(a[3]), f(a[4]), out);
+            case SPOT_NOISE -> spotNoise.evaluate(spotCalls[id], v(a[0], values, n), v(a[1], values, n), out);
             default -> throw new IllegalStateException(node.op() + " is not computed per position");
         }
         return out;
     }
 
-    /** A `spot_noise` node's constant parameters. */
-    private SpotNoise.Call spotCall(int id) {
-        int[] a = nodes[id].args();
-        return new SpotNoise.Call(id, target[a[2]], target[a[3]], target[a[4]], target[a[5]], seed(a[6]), seed(a[7]),
-                u(a[8]), u(a[9]), u(a[10]), (int) u(a[11]), (int) u(a[12]), u(a[13]) > 0, (int) u(a[14]), u(a[15]));
+    /** The batch's grid, for a noise that reads `x` and `y` as they are. */
+    private Grid grid(Grid grid, int[] a) {
+        return grid != null && target[a[0]] == inputX && target[a[1]] == inputY ? grid : null;
+    }
+
+    /** DistanceFromNearestPoint: the distance to the nearest point, which are map positions, up to the maximum. */
+    private static void distance(float[] xs, float[] ys, List<Point> list, float maximum, float[] out) {
+        float maximum2 = maximum * maximum;
+        float[] best = new float[xs.length];
+        Arrays.fill(best, maximum2);
+        for (Point p : list) {
+            float px = fixed(p.x()) * 0x1p-8f;
+            float py = fixed(p.y()) * 0x1p-8f;
+            for (int i = 0; i < xs.length; i++) {
+                float dx = xs[i] - px;
+                float dy = ys[i] - py;
+                float d2 = dy * dy + dx * dx;
+                if (best[i] > d2) {
+                    best[i] = d2;
+                }
+            }
+        }
+        for (int i = 0; i < xs.length; i++) {
+            out[i] = best[i] >= maximum2 ? maximum : (float) Math.sqrt(best[i]);
+        }
+    }
+
+    /** A coordinate as a map position holds it: 24.8 fixed point, truncated. */
+    private static int fixed(double v) {
+        return (int) (v * 256);
     }
 
     /** An argument over the batch; a constant one is filled once per batch and kept with the values. */
@@ -479,23 +417,29 @@ public final class Evaluator {
         return values[t];
     }
 
-    private static void narrow(double[] from, float[] to) {
-        for (int i = 0; i < from.length; i++) {
-            to[i] = (float) from[i];
-        }
-    }
-
     private static float[] filled(double value, int n) {
         float[] out = new float[n];
         Arrays.fill(out, (float) value);
         return out;
     }
 
-    private static double mod(double x, double y) {
-        return x - Math.floor(x / y) * y;
+    /** Clamp as the engine runs it: maxss, then minss. */
+    private static float clamp(float v, float lo, float hi) {
+        float t = v > lo ? v : lo;
+        return t < hi ? t : hi;
     }
 
-    private static double bool(boolean b) {
-        return b ? 1 : 0;
+    /** min, which Factorio's compiler makes a clamp from below at -inf. */
+    private static float min(float a, float b) {
+        return clamp(a, Float.NEGATIVE_INFINITY, b);
+    }
+
+    private static float max(float a, float b) {
+        return clamp(a, b, Float.POSITIVE_INFINITY);
+    }
+
+    /** Math::log2Precise, in double, to a float. */
+    private static float log2(float v) {
+        return (float) (Math.log(v) / Math.log(2));
     }
 }

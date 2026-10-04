@@ -92,6 +92,27 @@ class CompilerTest(unittest.TestCase):
 
     def test_folded_numbers_are_floats(self):
         self.assertEqual(compile_one("1 / 3"), ["const", gen_terrain.f32(1 / 3)])
+        self.assertEqual(compile_one("16777216 + 1 - 16777216"), ["const", 0.0])
+
+    def test_a_literal_keeps_its_double(self):
+        self.assertEqual(compile_one("0.1"), ["const", 0.1])
+        self.assertEqual(compile_one("123456789"), ["const", 123456789.0])
+
+    def test_pow_folds_precisely_and_runs_fast(self):
+        self.assertEqual(compile_one("3 ^ 0.3"), ["const", gen_terrain.f32(3 ** gen_terrain.f32(0.3))])
+        self.assertEqual(compile_one("x ^ 0.3"), ["pow", X, ["const", 0.3]])
+
+    def test_expression_in_range_is_half_widths_less_distances(self):
+        twenty, one = ["const", 20.0], ["const", 1.0]
+        self.assertEqual(compile_one("expression_in_range(20, 1, x, y, 0.25, -10, 0.75, 0.3)"),
+                         ["min",
+                          ["min", ["mul", twenty, ["sub", ["const", 0.25], ["abs", ["sub", X, ["const", 0.5]]]]], one],
+                          ["min", ["mul", twenty, ["sub", ["const", (0.3 + 10) * 0.5],
+                                                   ["abs", ["sub", Y, ["const", (0.3 - 10) * 0.5]]]]], one]])
+
+    def test_min_and_max_keep_their_order(self):
+        c = compiler()
+        self.assertNotEqual(c.expression("min(x, y)", None), c.expression("min(y, x)", None))
 
     def test_a_boolean_is_positive_not_nonzero(self):
         self.assertEqual(compile_one("if(-0.5, 1, 2)"), ["const", 2.0])
@@ -127,7 +148,7 @@ class CompilerTest(unittest.TestCase):
         self.assertEqual(compile_one("var('control:water:size')"), ["input", "control:water:size"])
 
     def test_a_string_is_its_crc32(self):
-        self.assertEqual(compile_one("'tree-01'"), ["const", gen_terrain.f32(gen_terrain.noise_layer_id("tree-01"))])
+        self.assertEqual(compile_one("'tree-01'"), ["const", 545692666.0])
 
     def test_defaults_are_filled_in_order(self):
         self.assertEqual(compile_one("basis_noise{x = x, y = y, seed0 = map_seed, seed1 = 3}"),

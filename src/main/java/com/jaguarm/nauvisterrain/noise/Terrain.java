@@ -337,16 +337,16 @@ public final class Terrain {
         return b;
     }
 
-    /** The program over one block, its tiles chosen and its things rolled for. */
+    /** The program over one block, as Factorio runs it over a chunk, its tiles chosen and its things rolled for. */
     private Block compute(int bx, int by) {
         int n = BLOCK * BLOCK;
-        float[] xs = new float[n];
-        float[] ys = new float[n];
+        int[] xs = new int[n];
+        int[] ys = new int[n];
         for (int i = 0; i < n; i++) {
             xs[i] = bx * BLOCK + i % BLOCK;
             ys[i] = by * BLOCK + i / BLOCK;
         }
-        float[][] v = evaluator.evaluate(roots, xs, ys);
+        float[][] v = evaluator.evaluateGrid(roots, bx * BLOCK, by * BLOCK, BLOCK, BLOCK, 1);
         byte[] tileOf = new byte[n];
         for (int i = 0; i < n; i++) {
             int best = 0;
@@ -379,7 +379,7 @@ public final class Terrain {
                     continue;
                 }
                 for (int attempt = 0; attempt < things.get(chosen).placementDensity(); attempt++) {
-                    long roll = Hash.of(seed, group * 64L + attempt, (long) xs[i], (long) ys[i]);
+                    long roll = Hash.of(seed, group * 64L + attempt, xs[i], ys[i]);
                     if (Hash.unit(roll) < probability) {
                         long priority = (long) group << 40 | (long) attempt << 32 | (Hash.mix(roll, 1) >>> 32);
                         rolled.add(new long[]{priority, chosen, i});
@@ -400,8 +400,8 @@ public final class Terrain {
             int i = (int) r[2];
             priority[k] = r[0];
             thing[k] = (int) r[1];
-            cx[k] = (int) xs[i];
-            cy[k] = (int) ys[i];
+            cx[k] = xs[i];
+            cy[k] = ys[i];
             richness[k] = v[thingRoot + 2 * thing[k] + 1][i];
         }
         return new Block(tileOf, v[climateRoot], v[climateRoot + 1], v[climateRoot + 2], thing, cx, cy, priority, richness);

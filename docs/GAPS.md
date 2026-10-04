@@ -4,13 +4,16 @@ What is deliberately missing
 Each a decision. If something looks broken, look here before treating it as a bug. Entries marked
 *kept* are divergences from Factorio chosen on purpose and are not debt.
 
-- A seed does not make Factorio's map for that seed. `basis_noise`, `spot_noise` and the random
-  penalties are ours (CLAUDE.md, rule 1); the rules on top of them are Factorio's.
-- Things are placed by rank, not one after another: a candidate gives way to every earlier one
-  in its way, even one that itself gave way. Factorio's sequential pass would let it stand. A few
-  rocks and decoratives fewer, and every chunk decided alone.
-- `^` and `pow` are exact. Factorio's are an approximation, so a tile sitting on a threshold can
-  come out differently.
+- A tile is the most probable one there, without the correction Factorio makes after
+  (`TileCorrectionMapGenerationTask`), which changes about one tile in 500 at the borders between
+  tiles: around the starts of seeds 123 and 987654321, 16352 and 16375 of 16384 tiles are
+  Factorio's.
+- Trees, rocks, decoratives and ore blocks stand by our own pass over Factorio's probabilities
+  (ARCHITECTURE.md, autoplace), not by Factorio's `EntityMapGenerationTask`: a seed's forests,
+  rock fields and patches are Factorio's, its single trees and rocks are not. The pass places by
+  rank, not one after another: a candidate gives way to every earlier one in its way, even one
+  that itself gave way, where Factorio's sequential pass would let it stand. A few rocks and
+  decoratives fewer, and every chunk decided alone.
 - Land is one height between cliffs. Factorio's `elevation` decides only where water is. *Kept.*
 - Cliffs follow the contours tile by tile, not on Factorio's 4 by 4 grid of cliff pieces, and a
   gap is a ramp. *Kept.*

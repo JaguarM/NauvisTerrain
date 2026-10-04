@@ -36,15 +36,30 @@ Other mods
 Noise
 -----
 
-- Two calls with the same `seed0` and `seed1` must return the same field. A noise keyed on the
-  call site rather than the seeds breaks every expression that reads one layer twice.
-- A `basis_noise` whose amplitude or feature size differs from Factorio's still makes plausible
-  terrain, just with the wrong share of each tile. Compare tile counts with Factorio's preview,
-  not only the picture.
+- Every number is a float, one operation at a time, folded constants too. A value the map settings
+  fix, computed in double, is an ulp off and moves a tile on a threshold.
+- A literal is a double until an operation folds it. Round `seed1 = 'tree-01'`'s CRC32 or an
+  `expression_in_range` bound to a float and the noise gets other tables, the range other edges.
+- `pow` at run time is fastapprox; `pow` between constants is exact. `3 ^ 0.3` and `x ^ 0.3` at
+  `x = 3` differ in the seventh digit, and both are Factorio's.
+- `min` and `max` give the later of two equal values, so their arguments keep Factorio's order: -0.0
+  and 0.0 differ in sign. The generator sorts only operations whose order cannot show.
+- A chunk and a list of the same positions are different batches. Over a chunk, noise reading `x`
+  and `y` as they are takes the grid path, and `multioctave_noise` scales its offsets with each
+  octave there; `random_penalty` and `spot_noise` depend on the batch's first position and bounds.
+  A block that is not Factorio's chunk, 32 by 32 from a multiple of 32 in rows of x, gives other
+  values that still look right.
+- `calculate_tile_properties` evaluates a list, so the oracle's values check only the list path.
+  Generated chunks are the check of the grid path, and they pass through Factorio's tile
+  correction first.
+- One batch with positions 200,000 tiles apart makes `spot_noise` visit every region between them:
+  minutes, in Factorio as here. Keep a probe's positions together.
+- Every seed below 342 seeds Factorio's random generator alike: those maps share their noise and
+  their starting lake. Two small seeds make the same ground.
+- `helpers.table_to_json` writes -0.0 as `-0`, which JSON reads as the integer 0. A comparison
+  through plain `json.loads` sees two different zeros as one.
+- `x ^ -2` written so crashes Factorio's compiler ("Unknown enum value: 88"); a probe writes
+  `x ^ (0 - 2)`.
 - Every `spot_noise` sharing a seed pair, region size and spacing draws from one series of
-  candidate points. Give each ore its own series and the patches overlap.
-- A sample of a few seeds says little about a noise with features thousands of tiles wide:
-  `moisture_noise`'s coarsest octave is 6912 tiles across. Calibrate over many seeds and a wide
-  grid, or chase sampling error.
-- Regions anchored at 0,0 instead of centred on it split the starting area four ways, and each
-  starting ore becomes a swarm of weak blobs.
+  candidate points, and `skip_offset` and `skip_span` deal it out. That is what keeps the ores
+  apart.
