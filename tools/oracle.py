@@ -20,10 +20,11 @@ A probe file:
      "jobs": [{"properties": ["name", "elevation"],
                "grid": [x0, y0, width, height, step]},     positions x0 + i·step, y0 + j·step
               {"properties": [...], "points": [[x, y], ...]},
-              {"tiles": [x0, y0, width, height]}]}        generated tiles, by name
+              {"tiles": [x0, y0, width, height]}]}        the generated chunks over an area
 
-The result is a list with one entry per job: {"name": [values...]} in row order, or for tiles
-{"tiles": [names...]}.
+The result is a list with one entry per job: {"name": [values...]} in row order, or for an area
+{"tiles": [names...], "entities": [[name, x, y, amount], ...], "decoratives": [[name, x, y, amount], ...]},
+the entities those whose boxes reach into the area.
 """
 
 from __future__ import annotations
@@ -73,7 +74,16 @@ script.on_init(function()
       for _, p in ipairs(positions(job)) do
         names[#names + 1] = surface.get_tile(p[1], p[2]).name
       end
-      results[n] = {tiles = names}
+      local area = {{t[1], t[2]}, {t[1] + t[3], t[2] + t[4]}}
+      local entities = {}
+      for _, e in ipairs(surface.find_entities_filtered{area = area}) do
+        entities[#entities + 1] = {e.name, e.position.x, e.position.y, e.type == "resource" and e.amount or 0}
+      end
+      local decoratives = {}
+      for _, d in ipairs(surface.find_decoratives_filtered{area = area}) do
+        decoratives[#decoratives + 1] = {d.decorative.name, d.position.x, d.position.y, d.amount}
+      end
+      results[n] = {tiles = names, entities = entities, decoratives = decoratives}
     else
       local all = positions(job)
       local merged = {}

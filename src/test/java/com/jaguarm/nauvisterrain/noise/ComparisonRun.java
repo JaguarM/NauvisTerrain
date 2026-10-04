@@ -60,6 +60,17 @@ class ComparisonRun {
                     }
                 }
                 out.put("tiles", tiles);
+                List<List<Object>> entities = new ArrayList<>();
+                for (Terrain.Placed p : area.entities()) {
+                    entities.add(List.of(p.prototype().name(), p.x(), p.y(),
+                            p.prototype().type().equals("resource") ? (long) p.richness() : 0));
+                }
+                out.put("entities", entities);
+                List<List<Object>> decoratives = new ArrayList<>();
+                for (Terrain.Placed p : area.decoratives()) {
+                    decoratives.add(List.of(p.prototype().name(), p.x(), p.y(), (int) p.richness()));
+                }
+                out.put("decoratives", decoratives);
             }
             Files.writeString(Path.of("build/compare/ours-" + seed + ".json"),
                     new GsonBuilder().serializeSpecialFloatingPointValues().create().toJson(out));

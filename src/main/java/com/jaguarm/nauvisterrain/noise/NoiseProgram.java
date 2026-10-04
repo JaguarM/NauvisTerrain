@@ -63,11 +63,11 @@ public final class NoiseProgram {
      * A tile, entity or decorative the planet places, with its English name. A box is left, top,
      * right, bottom around the thing's centre; a colour is 0xRRGGBB, or -1 for none. A water
      * tile's effect colour is the colour Factorio shades its surface with. A decal is a
-     * decorative Factorio draws into the ground.
+     * decorative Factorio draws into the ground. A tile has its rules, an entity its placement.
      */
     public record Prototype(String kind, String type, String name, String title, String order, String control,
                             int placementDensity, boolean hasRichness, double[] collisionBox, Mask collisionMask,
-                            int mapColor, int effectColor, boolean decal) {
+                            int mapColor, int effectColor, boolean decal, TileRules tileRules, Placement placement) {
         public String probabilityRoot() {
             return kind + ":" + name + ":probability";
         }
@@ -75,6 +75,21 @@ public final class NoiseProgram {
         public String richnessRoot() {
             return kind + ":" + name + ":richness";
         }
+    }
+
+    /** What the tile correction reads of a tile: its render layer, and the tile between it and each it may not touch. */
+    public record TileRules(int layer, Map<String, String> forbidden) {
+    }
+
+    /**
+     * What Factorio's placement reads of an entity or decorative besides its noise: whether it stands
+     * anywhere in its tile, the box the map generator tests it with, its build size, for a resource
+     * the chance and distance within which it removes the trees on its tile, whether an entity
+     * removes the decoratives under it, and whether a decorative is one that is removed.
+     */
+    public record Placement(boolean offGrid, double[] mapGeneratorBox, int tileWidth, int tileHeight,
+                            double treeRemovalProbability, double treeRemovalDistance, boolean removesDecoratives,
+                            boolean removable) {
     }
 
     /** One slider of Factorio's map generator screen: the setting it sets, and Factorio's words for it. */
@@ -122,7 +137,7 @@ public final class NoiseProgram {
                     p.get("title").getAsString(), p.get("order").getAsString(), p.get("control").isJsonNull() ? null : p.get("control").getAsString(),
                     p.get("placement_density").getAsInt(), p.get("richness").getAsBoolean(),
                     box(p.get("collision_box")), mask(p.getAsJsonObject("collision_mask")), colour(p.get("map_color")),
-                    colour(p.get("effect_color")), p.get("decal").getAsBoolean()));
+                    colour(p.get("effect_color")), p.get("decal").getAsBoolean(), tileRules(p), placement(p)));
         }
         prototypes = List.copyOf(list);
         JsonObject c = json.getAsJsonObject("cliff");
@@ -218,6 +233,26 @@ public final class NoiseProgram {
             };
         }
         return e.getAsDouble();
+    }
+
+    private static TileRules tileRules(JsonObject p) {
+        if (!p.has("layer")) {
+            return null;
+        }
+        Map<String, String> forbidden = new LinkedHashMap<>();
+        p.getAsJsonObject("forbidden").entrySet().forEach(e -> forbidden.put(e.getKey(), e.getValue().getAsString()));
+        return new TileRules(p.get("layer").getAsInt(), Collections.unmodifiableMap(forbidden));
+    }
+
+    private static Placement placement(JsonObject p) {
+        if (!p.has("off_grid")) {
+            return null;
+        }
+        JsonArray size = p.getAsJsonArray("tile_size");
+        JsonArray removal = p.getAsJsonArray("tree_removal");
+        return new Placement(p.get("off_grid").getAsBoolean(), box(p.get("map_generator_box")), size.get(0).getAsInt(),
+                size.get(1).getAsInt(), removal.get(0).getAsDouble(), removal.get(1).getAsDouble(),
+                p.get("removes_decoratives").getAsBoolean(), p.get("removable").getAsBoolean());
     }
 
     private static double[] box(JsonElement e) {

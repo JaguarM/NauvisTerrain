@@ -757,7 +757,7 @@ def build(raw: dict, terrain: dict, locale: dict, core: dict, extra_roots: tuple
         if has_richness:
             roots[f"{base}:richness"] = compiler.name(f"{base}:richness", None)
         proto = p["proto"]
-        prototypes.append({
+        entry = {
             "kind": p["kind"],
             "type": p["type"],
             "name": p["name"],
@@ -771,7 +771,11 @@ def build(raw: dict, terrain: dict, locale: dict, core: dict, extra_roots: tuple
             "map_color": colour(proto.get("map_color"), 255 if p["type"] == "resource" else 1),
             "effect_color": colour(proto.get("effect_color"), 1),
             "decal": proto.get("render_layer") == "decals",
-        })
+        }
+        if p["kind"] != TILE:
+            entry.update(placement(proto, p["type"]))
+        prototypes.append(entry)
+    tile_rules(raw, prototypes)
 
     nodes, roots = compact(compiler.graph, roots)
     for name, root in roots.items():
@@ -804,6 +808,61 @@ def build(raw: dict, terrain: dict, locale: dict, core: dict, extra_roots: tuple
     }
     program["presets"] = presets(raw, program["controls"], compiler.properties, locale)
     return program
+
+
+LAYER_GROUP_BASE = {"zero": 0, "water": 64, "water-overlay": 80, "ground-natural": 144, "ground-artificial": 400,
+                    "top": 528}
+
+
+# Entities whose decoratives removal is "automatic" and so on (EntityPrototype, vtable slot 0x168).
+REMOVES_DECORATIVES = {"simple-entity", "unit-spawner", "turret"}
+
+
+def placement(proto: dict, type_name: str) -> dict:
+    """What Factorio's placement reads of an entity or decorative besides the noise: the jitter flag, the map
+    generator's box (the collision box unless given), the build size (the box's, rounded up, unless given), a
+    resource's tree removal, whether an entity removes the decoratives under it and whether a decorative is one
+    that is removed (the object render layer)."""
+    box = proto.get("collision_box") or [[0, 0], [0, 0]]
+    removes = proto.get("remove_decoratives", "automatic")
+    return {
+        "off_grid": "placeable-off-grid" in proto.get("flags", []),
+        "map_generator_box": proto.get("map_generator_bounding_box") or box,
+        "tile_size": [proto.get("tile_width") or math.ceil(box[1][0] - box[0][0]),
+                      proto.get("tile_height") or math.ceil(box[1][1] - box[0][1])],
+        "tree_removal": [proto.get("tree_removal_probability", 0), proto.get("tree_removal_max_distance", 0)],
+        "removes_decoratives": removes == "true" or (removes == "automatic" and type_name in REMOVES_DECORATIVES),
+        "removable": type_name == "optimized-decorative" and proto.get("render_layer") == "object"
+                     and not proto.get("grows_through_rail_path", False),
+    }
+
+
+def tile_rules(raw: dict, prototypes: list[dict]) -> None:
+    """Each placed tile's render layer and, for each placed tile it may not touch, the one tile between them, as the
+    tile correction reads them (docs/NOISE.md)."""
+    tiles = raw["tile"]
+
+    def listed(name):
+        return tiles[name].get("allowed_neighbors")
+
+    def allowed(a, b):
+        la, lb = listed(a), listed(b)
+        return a == b or (la is not None and b in la) or (lb is not None and a in lb) or (la is None and lb is None)
+
+    placed = [p["name"] for p in prototypes if p["kind"] == TILE]
+    for p in prototypes:
+        if p["kind"] != TILE:
+            continue
+        t = tiles[p["name"]]
+        p["layer"] = (LAYER_GROUP_BASE[t.get("layer_group", "ground-natural")] + t.get("layer", 0)) % 528
+        p["forbidden"] = {}
+        for other in placed:
+            if allowed(p["name"], other):
+                continue
+            between = [m for m in tiles if m not in (p["name"], other) and allowed(p["name"], m) and allowed(m, other)]
+            if len(between) != 1 or between[0] not in placed:
+                raise GenError(f"{p['name']} and {other} may not touch, and the path between them is not one placed tile")
+            p["forbidden"][other] = between[0]
 
 
 def compact(graph: Graph, roots: dict[str, int]) -> tuple[list[list], dict[str, int]]:

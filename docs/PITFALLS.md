@@ -50,8 +50,11 @@ Noise
   A block that is not Factorio's chunk, 32 by 32 from a multiple of 32 in rows of x, gives other
   values that still look right.
 - `calculate_tile_properties` evaluates a list, so the oracle's values check only the list path.
-  Generated chunks are the check of the grid path, and they pass through Factorio's tile
-  correction first.
+  Generated chunks are the check of the grid path. Decoratives read `decorative_mix_noise`, a
+  `multioctave_noise` with `offset_y = seed`, so their probabilities in a chunk are another field
+  than the points say: only generated chunks check them.
+- Factorio's spawners bring decoratives of their own (red croton, red pita, mud decals) and keep
+  trees off. Set beside this world, which has no enemies, compare without them: `--bare`.
 - One batch with positions 200,000 tiles apart makes `spot_noise` visit every region between them:
   minutes, in Factorio as here. Keep a probe's positions together.
 - Every seed below 342 seeds Factorio's random generator alike: those maps share their noise and
@@ -63,3 +66,18 @@ Noise
 - Every `spot_noise` sharing a seed pair, region size and spacing draws from one series of
   candidate points, and `skip_offset` and `skip_span` deal it out. That is what keeps the ores
   apart.
+
+Placement
+---------
+
+- Tiles are chosen in Factorio's order of autoplacers, by order and then name, and a tie keeps
+  the earlier. Taking them in the program's order gives other tiles wherever two probabilities
+  meet, which with ranges capped at 1 is often.
+- The entity and decorative generators are seeded from the chunk alone, not the map seed, and draw
+  for every tile with a winner, whatever its probability. Skip a draw for a hopeless tile and every
+  later thing in the chunk moves.
+- Boxes that only touch collide (`BoundingBox::collide`). A strict overlap test lets a rock stand
+  against another and moves the trees around it.
+- A chunk's correction writes into its neighbours, and a chunk's entities keep off its neighbours'
+  later ones: chunks must be done in one fixed order. The order Minecraft asks for them in changes
+  with every player and thread.

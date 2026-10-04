@@ -47,29 +47,31 @@ expressions (`basis_noise{...}` with chosen parameters, say) can sample them thi
 is `build/oracle/`, and `factorio.exe --config ... --create map.zip --map-gen-seed N` runs the
 mod's `on_init`, which samples and writes, in about two seconds. The game's own settings, mods and
 saves are not touched. `calculate_tile_properties` evaluates its list as one batch, on the list
-path (`NOISE.md`). A tiles job generates the chunks over an area and reads their tiles back, the
-only window onto the grid path; a probe's own data-stage Lua can give tiles made-up autoplace
-expressions, so generated tiles show where an expression is above another. `helpers.table_to_json`
-writes infinities as bare `inf` and -0.0 as `-0`, which JSON reads as the integer 0; the oracle
-reads both back as Factorio meant them. `tools/compare.py` sets Factorio's values beside the
-evaluator's, bit for bit.
+path (`NOISE.md`). An area job generates the chunks over an area and reads back their tiles,
+entities and decoratives, the only window onto the grid path and the passes after it. A probe's own
+data-stage Lua can change prototypes: made-up tile autoplace expressions show where one expression
+is above another, and a resource on every tile whose richness is an expression times 2^24 reads
+that expression's value in the chunk's own batch. `helpers.table_to_json` writes infinities as bare
+`inf` and -0.0 as `-0`, which JSON reads as the integer 0; the oracle reads both back as Factorio
+meant them. `tools/compare.py` sets Factorio's values and chunks beside ours.
 
 What the oracle checks
 ----------------------
 
 - Every root of the program, the climate and every tile's, entity's and decorative's probability
   and richness, is Factorio's bit for bit over 2311 positions for seeds 123 and 987654321.
-  `src/test/resources/factorio-values.json` holds 30 positions of it, and `EvaluatorTest` holds
-  the evaluator to them.
-- Generated tiles are the highest tile probability: with made-up expressions (`x - y` against 0,
-  `x / 64` against `y / 64`) every one of 16384 tiles agrees, ties going to `grass-1` over
-  `grass-2`. A `multioctave_noise` with `offset_x = 1000` as a tile's probability agrees with the
-  grid path on 16346 of 16384 tiles and with the list path on 9219.
-- With Nauvis's own expressions, 16352 and 16375 of 16384 generated tiles around the starts of
-  seeds 123 and 987654321 are the highest probability on the grid path. Each of the others is
-  the second highest, at a border, where Factorio's tile correction moved it (`GAPS.md`).
-- Trees: the map preview places 0.83 trees per unit of summed tree probability on land; the rest
-  give way to each other. The preview places no rocks and no fish.
+  `src/test/resources/factorio-values.json` holds 30 positions of it.
+- Generated chunks around the start, -64 to 63 both ways, which Factorio makes with the map: every
+  tile, entity and decorative is Factorio's, 16384 tiles, 1034 entities and 6214 decoratives on seed
+  123, 16384, 1468 and 7585 on 987654321. `src/test/resources/factorio-chunks.json` holds the 64 by
+  64 tiles in the middle on seed 123, and `EvaluatorTest` holds `Terrain` to both fixtures.
+- Far from the start, at 640 and at -900, -700, 128 by 128 tiles: every tile is Factorio's. With
+  Factorio's enemies and cliffs off (`--bare`), so are the decoratives; the trees and rocks differ
+  only within a few tiles of chunk edges, where Factorio's own order of making chunks decides
+  (`GAPS.md`).
+- Made-up tile expressions (`x - y` against 0, `x / 64` against `y / 64`) place every one of 16384
+  tiles as the highest probability, ties going to `grass-1` over `grass-2`, and a
+  `multioctave_noise` with `offset_x = 1000` agrees with the grid path, not the list path.
 
 Nauvis's map gen settings
 -------------------------

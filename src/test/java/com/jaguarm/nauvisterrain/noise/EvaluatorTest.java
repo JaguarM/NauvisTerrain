@@ -84,6 +84,42 @@ class EvaluatorTest {
         }
     }
 
+    @Test
+    void theMapAroundTheStartIsFactorios() throws IOException {
+        JsonObject fixture;
+        try (InputStream in = EvaluatorTest.class.getResourceAsStream("/factorio-chunks.json")) {
+            fixture = JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8)).getAsJsonObject();
+        }
+        JsonArray a = fixture.getAsJsonArray("area");
+        int x0 = a.get(0).getAsInt(), y0 = a.get(1).getAsInt(), w = a.get(2).getAsInt(), h = a.get(3).getAsInt();
+        Terrain.Area area = new Terrain(new Evaluator(program, MapSettings.defaults(fixture.get("seed").getAsLong())))
+                .area(x0, y0, w, h);
+        List<String> tiles = new ArrayList<>();
+        for (JsonElement run : fixture.getAsJsonArray("tiles")) {
+            for (int i = 0; i < run.getAsJsonArray().get(1).getAsInt(); i++) {
+                tiles.add(run.getAsJsonArray().get(0).getAsString());
+            }
+        }
+        List<String> ours = new ArrayList<>();
+        for (int y = y0; y < y0 + h; y++) {
+            for (int x = x0; x < x0 + w; x++) {
+                ours.add(area.tile(x, y).name());
+            }
+        }
+        assertEquals(tiles, ours);
+        assertEquals(strings(fixture.getAsJsonArray("entities")), area.entities().stream()
+                .map(p -> p.prototype().name() + " " + p.x() + " " + p.y() + " "
+                        + (p.prototype().type().equals("resource") ? (long) p.richness() : 0)).sorted().toList());
+        assertEquals(strings(fixture.getAsJsonArray("decoratives")), area.decoratives().stream()
+                .map(p -> p.prototype().name() + " " + p.x() + " " + p.y() + " " + (int) p.richness()).sorted().toList());
+    }
+
+    private static List<String> strings(JsonArray array) {
+        List<String> out = new ArrayList<>();
+        array.forEach(e -> out.add(e.getAsString()));
+        return out;
+    }
+
     private static float factorio(JsonElement e) {
         if (e.getAsJsonPrimitive().isString()) {
             return switch (e.getAsString()) {

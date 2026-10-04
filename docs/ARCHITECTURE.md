@@ -49,18 +49,33 @@ anything is built in Minecraft.
 Autoplace
 ---------
 
-Factorio's rules, from its docs. An autoplace runs on Nauvis when Nauvis's `autoplace_settings`
-name it or its `default_enabled` is not false.
+Factorio's map generator, as `factorio.exe` runs it; `reference/factorio/engine/` holds what was
+read of it. An autoplace runs on Nauvis when Nauvis's `autoplace_settings` name it or its
+`default_enabled` is not false. Autoplacers go by `order`, then name, compared byte by byte, and
+those sharing an order compete for a tile.
 
-- Tiles: of all tile probabilities at a position, the highest wins.
-- Trees, rocks, decoratives and ores: the probability is the chance of each of
-  `placement_density` attempts on a tile, taken in `order`; of things sharing an order only the
-  most probable is tried. A thing cannot stand where its collision layers meet a tile's under its
-  box (no tree in water, fish only in it), nor overlap an earlier thing whose layers meet its own
-  (`NoiseProgram.Mask`). An ore's richness is its amount.
-- Earlier means earlier in order, then in attempt, then by a hash of the tile. A thing gives way
-  to every earlier candidate that overlaps it and fits its tiles, whether or not that one stands
-  in the end, so a chunk's things are decided from its neighbours' rolls alone.
+- Tiles: of all tile probabilities at a position the strictly highest wins, so a tie keeps the
+  earlier tile. Then the tile correction (`TileCorrection`): for each chunk, a walk from each of its
+  tiles over it and its eight neighbours replaces a tile that would make a one-tile strip, a pinch
+  or a forbidden neighbour (deepwater beside land) with the neighbour it fails, or the tile
+  between. A chunk's correction can change its neighbours, so the order chunks are corrected in
+  counts.
+- Trees, rocks, ores and fish: per chunk, one random generator seeded from the chunk alone. Each
+  tile goes to the most probable of a group whose layers its tile does not meet; every tile with a
+  winner draws `placement_density` times, and each draw below the probability is an attempt. A tree
+  or rock stands on a 1/16 grid at a jitter two more draws give, an ore at the tile's centre, and
+  none where its map generator box meets a tile's layers. Then the chunk's attempts are made in turn,
+  each unless its box touches an entity already there whose layers meet its own: boxes that only
+  touch collide. An ore made within 1024 tiles of a start removes the trees on its tile by a chance
+  that falls with the distance.
+- Decoratives: the same, with a generator of their own, every successful draw adding to the tile's
+  amount, the position in the tile a hash of the tile and the name. A chunk's decoratives are made
+  before its entities, and kept off only by entities of chunks made before; rocks remove the
+  decoratives of the object layer under them.
+- Chunk order: the area made with the map, chunks -7 to 6, is corrected and made as Factorio makes it
+  at the start of a map, column by column. Every other chunk is corrected as itself and its
+  neighbours would be in turn, and made after the neighbours that come earlier in a 2 by 2 pattern
+  of chunks, so what a chunk gets never depends on the order Minecraft asks for chunks in.
 - Cliffs: along the contours `cliff_elevation_0 + k · cliff_elevation_interval` of
   `cliff_elevation`, on a 4 by 4 grid, where `cliffiness` is above 0.5. The interval is 40 over the
   cliff control's frequency; continuity (`cliff_richness`) sets how unbroken the lines are.
