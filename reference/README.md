@@ -18,6 +18,9 @@ gives each block, and the map generator screen's words.
 
 `factorio/docs/` is the API pages the terrain needs, as text: `python tools/factorio_docs.py`.
 `factorio/previews/` holds Factorio's own map previews (`docs/FACTORIO.md`, the map preview).
+`factorio/engine/` is the noise built-ins as `factorio.exe` computes them, read from the binary
+through the `factorio.pdb` beside it, with Python ports checked bit for bit against Factorio and
+the tools that read the binary; its `README.md` says what is there.
 
 The rest is read where it is installed, under `F:/Steam/steamapps/common/Factorio`:
 
