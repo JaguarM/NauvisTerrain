@@ -13,8 +13,6 @@ Factorio tile to a block, and generated from Factorio's own noise expressions.
 | Minecraft | 26.2 |
 | NeoForge | 26.2.0.59 |
 
-Not playable yet; `docs/NEXT.md` says how far it is.
-
 Building
 --------
 
