@@ -15,29 +15,32 @@ Factorio's map generator screen, presets included. `tools/gen_terrain.py` turns 
 noise program (`src/main/resources/nauvis_terrain/noise/nauvis.json`, 1744 nodes, 113 roots), the
 `noise` package runs it with the engine's built-ins as `factorio.exe` computes them, and places
 tiles, trees, rocks, ores and decoratives as Factorio's map generator does: around the start every
-one is Factorio's (`FACTORIO.md`, what the oracle checks). The `world` package lays it out. Not
-yet seen in a client: the world creation screen starting on Nauvis, the map generator screen, and how it all looks
-from a player's eyes and from Distant Horizons'. `./gradlew test` renders seed 123 into
-`build/nauvis-123-512.png`; `./gradlew runGameTestServer` checks chunks of a real Nauvis world and
-measures it: 83 full chunks a second over 400, where vanilla's Nether in the same run makes 37.
+one is Factorio's (`FACTORIO.md`, what the oracle checks). The `world` package lays it out. A new
+world starts on it. Project Nauvis runs it as its world, an `includeBuild` at runtime in the pack
+mod: the pack places no ore of its own, its drill takes this world's ores, and its oil fields and
+natural water reach the biome through `#minecraft:is_overworld`. `./gradlew test` renders seed 123
+into `build/nauvis-123-512.png`; `./gradlew runGameTestServer` checks chunks of a real Nauvis world
+and measures it: 83 full chunks a second over 400, where vanilla's Nether in the same run makes 37.
 
 The jobs
 --------
 
-### 1. Project Nauvis
+### 1. Look at it
 
-Once a world is playable, the pack takes the mod as an `includeBuild`. What already meets it there:
+Everything has passed its tests and nobody's eyes. A client boot (`./gradlew runClient`, with
+Distant Horizons and Dynamic Trees in `run/mods`) and an evening:
 
-- `nauvis:ore_patch` adds the pack's own underground patches to `#minecraft:is_overworld`
-  (`nauvis/.../ore/OrePatches.java`); with this world it either goes or moves to the surface.
-- The pack's drill takes `#nauvis_mining:factorio_ores`, which is `#c:ores/iron`, `copper` and
-  `coal`, so vanilla's ore blocks from this world already count.
-- `nauvis_fluids:natural_water` swaps vanilla water for the pack's in the last decoration step,
-  and `nauvis_fluids:crude_oil_field` places oil; both reach this world through the biome tag.
-  The oil field's placement approximates Factorio's autoplace and could read this program's
-  `crude-oil` instead.
-- The pack's pollution absorption reads the biome; Factorio's is per tile (`FACTORIO.md`), which
-  this world's ground block would give it.
+- **The screens.** Create World chooses Nauvis and leaves Default under World Type as vanilla's;
+  Customize opens the map generator screen, sliders and presets. A typed seed should give the map
+  `python tools/oracle.py preview SEED` draws.
+- **The ground.** A walk out from the start: the tile blocks and their textures, terraces and
+  cliff faces, the ramp at a gap, a pool sunk into a plateau, trees, rocks and decoratives at a
+  player's eye. Not identity, so free to move: the step (`CLIFF_STEP` in `TerrainData`, written
+  into the world preset) and the ramp's share of a level (`RAMP` in `Ground`).
+- **From afar.** Distant Horizons' view against Factorio's preview, and whether generation keeps
+  up with flying.
+- **In the pack.** A drill on a surface patch one block deep, and the oil fields and offshore pump
+  on Nauvis ground and lakes (`:nauvis:runClient` in `../ProjectNauvis`).
 
 How to run everything
 ---------------------
