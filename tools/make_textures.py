@@ -23,8 +23,8 @@ from PIL import Image
 
 REPO = Path(__file__).resolve().parent.parent
 FACTORIO = Path("F:/Steam/steamapps/common/Factorio/data")
-PROGRAM = REPO / "src" / "main" / "resources" / "nauvis_terrain" / "noise" / "nauvis.json"
-OUT = REPO / "src" / "main" / "resources" / "assets" / "nauvis_terrain" / "textures" / "block"
+PROGRAM = REPO / "core" / "src" / "main" / "resources" / "nauvis_terrain" / "noise" / "nauvis.json"
+OUT = REPO / "core" / "src" / "main" / "resources" / "assets" / "nauvis_terrain" / "textures" / "block"
 SIZE = 16
 COLOURS = 6
 VARIANTS = 4

@@ -3,7 +3,7 @@
 Generate the noise program from Factorio's data.raw plus data/terrain.json (CLAUDE.md, rule 2).
 
     reference/factorio/data-raw-<version>.json + data/terrain.json
-        -> src/main/resources/nauvis_terrain/noise/nauvis.json
+        -> core/src/main/resources/nauvis_terrain/noise/nauvis.json
 
 Every expression Nauvis's map gen reaches is parsed, its names resolved by Factorio's rules
 (docs/NOISE.md), noise functions inlined, constants folded and identical nodes merged into one
@@ -48,7 +48,7 @@ DATA_RAW = REPO / "reference" / "factorio" / f"data-raw-{FACTORIO_VERSION}.json"
 TERRAIN = REPO / "data" / "terrain.json"
 LOCALE = REPO / "reference" / "factorio" / "locale" / "en" / "base.cfg"
 CORE_LOCALE = REPO / "reference" / "factorio" / "locale" / "en" / "core.cfg"
-PROGRAM = REPO / "src" / "main" / "resources" / "nauvis_terrain" / "noise" / "nauvis.json"
+PROGRAM = REPO / "core" / "src" / "main" / "resources" / "nauvis_terrain" / "noise" / "nauvis.json"
 
 CLIMATE = ("elevation", "moisture", "aux", "temperature", "cliff_elevation", "cliffiness")
 

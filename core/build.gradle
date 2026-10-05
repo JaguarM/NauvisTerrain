@@ -1,0 +1,81 @@
+plugins {
+    id 'java-library'
+}
+
+// Each Minecraft version's mod compiles this into its own jar, the oldest on Java 21.
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // The game puts Gson on the classpath; 2.10.1 is the oldest a version here ships, 1.21.1's.
+    compileOnly 'com.google.code.gson:gson:2.10.1'
+    testImplementation 'com.google.code.gson:gson:2.10.1'
+    testImplementation platform('org.junit:junit-bom:5.11.3')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.named('test', Test) {
+    useJUnitPlatform()
+    testLogging {
+        events 'failed'
+        showStandardStreams = true
+        exceptionFormat = 'full'
+    }
+}
+
+// What each version's project compiles into its jar: these sources and resources, not a jar of them.
+configurations {
+    coreJava {
+        canBeConsumed = true
+        canBeResolved = false
+    }
+    coreResources {
+        canBeConsumed = true
+        canBeResolved = false
+    }
+}
+artifacts {
+    coreJava file('src/main/java')
+    coreResources file('src/main/resources')
+}
+
+// The noise program is generated (CLAUDE.md, rule 2): the generator's tests, then a diff of what
+// it makes against the program on disk. Skipped when Wube's gitignored dump or locale is absent.
+var checkTerrain = tasks.register('checkTerrain') {
+    group = 'verification'
+    description = 'Tests tools/gen_terrain.py and diffs the noise program it makes against the one on disk.'
+
+    def repo = rootDir
+    def dumps = fileTree(new File(repo, 'reference/factorio')) { include 'data-raw-*.json' }
+    def locale = new File(repo, 'reference/factorio/locale/en/base.cfg')
+    def coreLocale = new File(repo, 'reference/factorio/locale/en/core.cfg')
+    inputs.files(fileTree(new File(repo, 'tools')) { include '*.py' }, new File(repo, 'data/terrain.json'), dumps)
+            .withPropertyName('generator')
+    outputs.upToDateWhen { false }
+
+    doLast {
+        if (dumps.isEmpty() || !locale.exists() || !coreLocale.exists()) {
+            logger.lifecycle("checkTerrain: skipped, Factorio's dump or locale is absent from reference/factorio (reference/README.md)")
+            return
+        }
+        [['-m', 'unittest', '-q', 'tools/test_gen_terrain.py'], ['tools/gen_terrain.py', '--check']].each { args ->
+            // ProcessBuilder rather than exec {}, which is gone from task actions in Gradle 9.
+            def process = new ProcessBuilder(['python'] + args).directory(repo).redirectErrorStream(true).start()
+            def output = process.inputStream.text
+            logger.lifecycle(output)
+            if (process.waitFor() != 0) {
+                throw new GradleException('The noise program disagrees with the generator, or the generator with its tests. '
+                        + 'Regenerate rather than edit by hand: python tools/gen_terrain.py --write')
+            }
+        }
+    }
+}
+tasks.named('check') { dependsOn checkTerrain }

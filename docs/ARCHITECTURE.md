@@ -9,7 +9,7 @@ The pipeline
     reference/factorio/data-raw-2.0.77.json ┐
     data/terrain.json                       ┴→ tools/gen_terrain.py → the noise program (committed)
                                                                               ↓
-                                                  the noise package (Java) → the chunk generator
+                                           core: the noise and the world's layout → each version's mod
 
 The generator is the only thing that reads Factorio's syntax. It parses every expression Nauvis's
 map gen reaches, resolves names by Factorio's rules (`NOISE.md`), inlines noise functions, folds
@@ -22,7 +22,7 @@ every seed and slider. A property a preset swaps through `property_expression_na
 to `elevation_lakes`, say) is one node holding every value the presets give it, and the map
 settings pick one. `data/terrain.json` holds the choices the dump cannot make: the planet, and
 which prototypes the world does not place. The program is
-`src/main/resources/nauvis_terrain/noise/nauvis.json`, and it also carries what the world needs of
+`core/src/main/resources/nauvis_terrain/noise/nauvis.json`, and it also carries what the world needs of
 each prototype besides its noise: order, placement density, collision box, map colour.
 
 A new Factorio version is a new dump and a regenerated program, never a hand edit.
@@ -40,11 +40,28 @@ Factorio gives that chunk. `Terrain` keeps the blocks it has made for the chunks
 so threads that make chunks side by side (Distant Horizons' among them) reuse each other's work.
 `spot_noise` runs its argument expressions over its own batch of candidate points.
 
-The noise package is plain Java (CLAUDE.md, rule 6). `./gradlew test` renders seed 123 to
-`build/nauvis-123-512.png`, each tile in its `map_color` from the dump, with each tile's share and
-each thing's count beside it in `build/nauvis-123-512.txt`, so it reads like Factorio's map preview
+Core is plain Java (CLAUDE.md, rule 6). `./gradlew test` renders seed 123 to
+`core/build/nauvis-123-512.png`, each tile in its `map_color` from the dump, with each tile's share
+and each thing's count beside it in `core/build/nauvis-123-512.txt`, so it reads like Factorio's map preview
 of the same seed and settings. Looking at the two side by side is how the world is judged before
 anything is built in Minecraft.
+
+Versions
+--------
+
+One mod, built for each Minecraft version on what they share:
+
+- `core/` is everything that is not Minecraft's API: Factorio's noise and map generator (the
+  `noise` package), the noise program, how its map becomes blocks (`Terraces`: terraces, cliff
+  faces, pools and the stone beneath), the map generator screen's settings (`NauvisMap`) and the
+  textures. It compiles with no Minecraft on its classpath, for Java 21 and against the oldest
+  Gson a version ships, so every version runs it as it is.
+- `mc-<version>/` is the mod for one Minecraft version: registration, the chunk generator,
+  features, data generation, screens and gametests, written against that version's API. It
+  compiles core's sources and resources into its own jar, `nauvis_terrain-<version>-<mod
+  version>.jar`, so the jar stands alone.
+- 26.2 is the version the mod is developed on, and Project Nauvis's; a change lands there first,
+  then in each other version.
 
 Autoplace
 ---------

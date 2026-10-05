@@ -60,10 +60,10 @@ What the oracle checks
 
 - Every root of the program, the climate and every tile's, entity's and decorative's probability
   and richness, is Factorio's bit for bit over 2311 positions for seeds 123 and 987654321.
-  `src/test/resources/factorio-values.json` holds 30 positions of it.
+  `core/src/test/resources/factorio-values.json` holds 30 positions of it.
 - Generated chunks around the start, -64 to 63 both ways, which Factorio makes with the map: every
   tile, entity and decorative is Factorio's, 16384 tiles, 1034 entities and 6214 decoratives on seed
-  123, 16384, 1468 and 7585 on 987654321. `src/test/resources/factorio-chunks.json` holds the 64 by
+  123, 16384, 1468 and 7585 on 987654321. `core/src/test/resources/factorio-chunks.json` holds the 64 by
   64 tiles in the middle on seed 123, and `EvaluatorTest` holds `Terrain` to both fixtures.
 - Far from the start, at 640 and at -900, -700, 128 by 128 tiles: every tile is Factorio's. With
   Factorio's enemies and cliffs off (`--bare`), so are the decoratives; the trees and rocks differ

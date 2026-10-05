@@ -28,4 +28,4 @@ Building
 ./gradlew build
 ```
 
-The jar lands in `build/libs/`. Java 25 is required.
+The jar lands in `mc-26.2/build/libs/`. Java 25 is required.

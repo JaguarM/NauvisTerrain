@@ -1,0 +1,23 @@
+[
+  {
+    "apply": {
+      "chance": 1.0,
+      "density": "noise()",
+      "species": {
+        "random": {
+          "acacia": 4471,
+          "birch": 15197,
+          "cherry": 16235,
+          "dark_oak": 10472,
+          "jungle": 2377,
+          "oak": 15362,
+          "pale_oak": 1124,
+          "spruce": 6323
+        }
+      }
+    },
+    "select": {
+      "name": "nauvis_terrain:nauvis"
+    }
+  }
+]

@@ -8,7 +8,7 @@ Factorio's values against ours, bit for bit (docs/FACTORIO.md, the oracle).
 Each NAME is a root or a named expression (`elevation`, `tile:grass-1:probability`); with none,
 every root of the program. Factorio evaluates them over a list of positions through
 tools/oracle.py, in one batch; ours come from a program with those names as roots, written to
-build/compare/, which ComparisonRun evaluates over the same list as one batch. With --tiles,
+core/build/compare/, which ComparisonRun evaluates over the same list as one batch. With --tiles,
 Factorio generates the chunks over the area and its tiles are set against the ones our Terrain
 picks there. Each --autoplace gives a tile a made-up probability in Factorio and in our program
 alike, and every tile it does not name -inf, so the generated tiles show where one expression is
@@ -35,18 +35,18 @@ import gen_terrain  # noqa: E402
 import oracle  # noqa: E402
 
 REPO = Path(__file__).resolve().parent.parent
-WORK = REPO / "build" / "compare"
+WORK = REPO / "core" / "build" / "compare"
 PROGRAM = gen_terrain.PROGRAM
 # Multiples of 1/256, which Factorio's map positions keep exactly, spread over a few thousand tiles.
 GRID = [-2047.5, -1535.25, 48, 48, 85.33203125]
 POINTS = [[0, 0], [0.5, 0.5], [-0.25, 3.75], [100000.5, -77777.25], [-123456.75, 54321.5], [31, 31], [32, 0]]
-FIXTURE = REPO / "src" / "test" / "resources" / "factorio-values.json"
+FIXTURE = REPO / "core" / "src" / "test" / "resources" / "factorio-values.json"
 # Factorio's map gen settings without the enemies and cliffs this world does not place as entities.
 BARE = {"autoplace_controls": {"enemy-base": {"frequency": 0, "size": 0, "richness": 0}}, "cliff_settings": {"richness": 0}}
 FIXTURE_SEEDS = [123, 987654321]
 FIXTURE_GRID = [-400.5, -350.25, 5, 5, 173.25]
 # Factorio's own generated chunks around the start of the first fixture seed: tiles, entities, decoratives.
-CHUNKS = REPO / "src" / "test" / "resources" / "factorio-chunks.json"
+CHUNKS = REPO / "core" / "src" / "test" / "resources" / "factorio-chunks.json"
 CHUNKS_AREA = [-32, -32, 64, 64]
 
 
@@ -80,7 +80,7 @@ def ours(names: list[str], seeds: list[int], points: list, tiles: list[int] | No
     request.write_text(json.dumps(spec))
     gradle = REPO / ("gradlew.bat" if sys.platform == "win32" else "gradlew")
     try:
-        subprocess.run([str(gradle), "test", "--tests", "*ComparisonRun*", "--rerun", "-q"], cwd=REPO, check=True,
+        subprocess.run([str(gradle), ":core:test", "--tests", "*ComparisonRun*", "--rerun", "-q"], cwd=REPO, check=True,
                        capture_output=True)
     finally:
         request.unlink()
