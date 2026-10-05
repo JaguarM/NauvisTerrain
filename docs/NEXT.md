@@ -23,29 +23,16 @@ world's ores, and its oil fields and natural water reach the biome through
 `#minecraft:is_overworld`. `./gradlew test` renders seed 123 into `core/build/nauvis-123-512.png`;
 each version's `runGameTestServer` checks chunks of a real Nauvis world and measures it: 83 full
 chunks a second over 400, where vanilla's Nether in the same run makes 37 (1.21.1: 83 and 34).
+Both versions have been played in a client and look right.
 
 The jobs
 --------
 
-### 1. Look at it
+### 1. In the pack
 
-Everything has passed its tests and nobody's eyes. A client boot (`./gradlew :mc-26.2:runClient`,
-with Distant Horizons and Dynamic Trees in `mc-26.2/run/mods`) and an evening:
-
-- **The screens.** Create World chooses Nauvis and leaves Default under World Type as vanilla's;
-  Customize opens the map generator screen, sliders and presets. A typed seed should give the map
-  `python tools/oracle.py preview SEED` draws.
-- **The ground.** A walk out from the start: the tile blocks and their textures, terraces and
-  cliff faces, the ramp at a gap, a pool sunk into a plateau, trees, rocks and decoratives at a
-  player's eye. Not identity, so free to move: the step (`STEP` in core's `Terraces`, written
-  into the world preset) and the ramp's share of a level (`RAMP` in `Terraces`).
-- **From afar.** Distant Horizons' view against Factorio's preview, and whether generation keeps
-  up with flying.
-- **In the pack.** A drill on a surface patch one block deep, and the oil fields and offshore pump
-  on Nauvis ground and lakes (`:nauvis:runClient` in `../ProjectNauvis`).
-- **On 1.21.1.** The same in `./gradlew :mc-1.21.1:runClient`, with 1.21.1's builds of the mods in
-  `mc-1.21.1/run/mods` (Dynamic Trees 1.7.2), and its stand-ins (`GAPS.md`, on 1.21.1) at a
-  player's eye. It has booted to the title screen and passed its gametests, no more.
+The world in Project Nauvis, which nobody has looked at yet: a drill on a surface patch one block
+deep, and the oil fields and offshore pump on Nauvis ground and lakes (`:nauvis:runClient` in
+`../ProjectNauvis`).
 
 ### 2. 26.3
 
