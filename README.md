@@ -8,10 +8,10 @@ desert, lakes, cliffs, forests, rocks and the little plants and decals between t
 iron, copper, coal and stone in Factorio's patch shapes at the surface. The world is flat, one
 Factorio tile to a block, and generated from Factorio's own noise expressions.
 
-| | |
+| Minecraft | NeoForge |
 |---|---|
-| Minecraft | 26.2 |
-| NeoForge | 26.2.0.59 |
+| 26.2 | 26.2.0.59 |
+| 1.21.1 | 21.1.255 |
 
 Playing
 -------
@@ -28,4 +28,5 @@ Building
 ./gradlew build
 ```
 
-The jar lands in `mc-26.2/build/libs/`. Java 25 is required.
+Each version's jar lands in `mc-<version>/build/libs/`, `nauvis_terrain-<version>-<mod
+version>.jar`. The game runs 26.2's on Java 25 and 1.21.1's on Java 21.

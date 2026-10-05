@@ -1,0 +1,9 @@
+{
+  "feature": "nauvis_terrain:brown_asterisk_mini",
+  "placement": [
+    {
+      "type": "nauvis_terrain:autoplace",
+      "entity": "brown-asterisk-mini"
+    }
+  ]
+}

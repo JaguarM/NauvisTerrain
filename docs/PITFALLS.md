@@ -84,3 +84,15 @@ Placement
 - A chunk's correction writes into its neighbours, and a chunk's entities keep off its neighbours'
   later ones: chunks must be done in one fixed order. The order Minecraft asks for them in changes
   with every player and thread.
+
+Versions
+--------
+
+- A change in one version's mod and not the other's makes two worlds, and both versions' tests
+  pass. What both should share goes in core; what cannot, goes in both, and `GAPS.md` says where
+  they differ.
+- A 1.21.1 tree turns the ground under its trunk to dirt unless the block refuses. The tile
+  blocks refuse (`TerrainBlocks`); a block a pack puts in a tile's place may not, and then the
+  sand under a desert tree becomes a patch of dirt.
+- 1.21.1's gametest server keeps its world between runs, so the chunks an older build made are
+  loaded, not generated, and a test passes on them. `gameTestWorld` makes the world anew each run.

@@ -1,0 +1,9 @@
+{
+  "feature": "nauvis_terrain:red_pita",
+  "placement": [
+    {
+      "type": "nauvis_terrain:autoplace",
+      "entity": "red-pita"
+    }
+  ]
+}

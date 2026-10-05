@@ -1,0 +1,9 @@
+{
+  "feature": "nauvis_terrain:huge_rock",
+  "placement": [
+    {
+      "type": "nauvis_terrain:autoplace",
+      "entity": "huge-rock"
+    }
+  ]
+}

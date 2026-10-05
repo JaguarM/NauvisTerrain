@@ -37,3 +37,12 @@ Each a decision. If something looks broken, look here before treating it as a bu
   Factorio has none on Nauvis.
 - Animals and monsters: Nauvis has neither, the biome has plains'. The mod alone is survivable,
   and a pack changes spawns with biome modifiers. *Kept.*
+
+On 1.21.1
+---------
+
+What 1.21.1 lacks against 26.2. Its world is otherwise the same block for block.
+
+- Plants and trees are of blocks 1.21.1 has: a fern for a bush, a dead bush for dry grass, dark
+  oak's leaves on the brown trees for pale oak's, an acacia log for the grey trunk, and a single log
+  on its side for a fallen tree. With Dynamic Trees, its dark oak for pale oak.

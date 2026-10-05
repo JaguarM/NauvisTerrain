@@ -1,0 +1,9 @@
+{
+  "feature": "nauvis_terrain:white_desert_bush",
+  "placement": [
+    {
+      "type": "nauvis_terrain:autoplace",
+      "entity": "white-desert-bush"
+    }
+  ]
+}

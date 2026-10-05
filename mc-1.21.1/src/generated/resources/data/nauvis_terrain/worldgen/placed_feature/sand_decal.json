@@ -1,0 +1,9 @@
+{
+  "feature": "nauvis_terrain:sand_decal",
+  "placement": [
+    {
+      "type": "nauvis_terrain:autoplace",
+      "entity": "sand-decal"
+    }
+  ]
+}

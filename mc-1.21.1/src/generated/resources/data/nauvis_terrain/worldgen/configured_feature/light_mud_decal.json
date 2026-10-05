@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:disk",
+  "config": {
+    "half_height": 0,
+    "radius": 2,
+    "state_provider": {
+      "fallback": {
+        "type": "minecraft:simple_state_provider",
+        "state": {
+          "Name": "nauvis_terrain:dirt_2"
+        }
+      },
+      "rules": []
+    },
+    "target": {
+      "type": "minecraft:matching_block_tag",
+      "tag": "nauvis_terrain:ground"
+    }
+  }
+}

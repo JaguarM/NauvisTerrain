@@ -1,0 +1,9 @@
+{
+  "feature": "nauvis_terrain:cracked_mud_decal",
+  "placement": [
+    {
+      "type": "nauvis_terrain:autoplace",
+      "entity": "cracked-mud-decal"
+    }
+  ]
+}
