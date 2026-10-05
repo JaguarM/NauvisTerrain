@@ -47,6 +47,7 @@ How to run everything
 | | |
 |---|---|
 | `./gradlew build` | core's tests and every version's jar, in `mc-<version>/build/libs/` |
+| `gh release create v<mod_version> mc-26.2/build/libs/*.jar mc-1.21.1/build/libs/*.jar` | a release on GitHub, each version's jar attached, after `mod_version` goes up in `gradle.properties` and `./gradlew clean build` |
 | `./gradlew test` | core's tests: the evaluator against Factorio's values, and seed 123's render |
 | `./gradlew :mc-26.2:runClient`, `:mc-1.21.1:runClient` | the game with the mod |
 | `./gradlew :mc-26.2:runClientData` / `runServerData` | 26.2's models, textures and language / loot, tags, the biome and the world preset |
