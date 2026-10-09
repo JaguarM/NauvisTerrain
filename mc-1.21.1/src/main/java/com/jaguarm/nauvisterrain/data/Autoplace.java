@@ -79,15 +79,23 @@ final class Autoplace {
             "sand-decal", "sand-1", "sand-dune-decal", "sand-3", "red-desert-decal", "red-desert-1",
             "light-mud-decal", "dirt-2", "dark-mud-decal", "dirt-6", "cracked-mud-decal", "dry-dirt");
 
-    /** The decal and plant features first, rocks next and trees last, so a tree replaces a plant and not the other way. */
+    /**
+     * The decals first, rocks and trees next, and the plants last, from the program's last back, each
+     * only into an empty block: of the plants Factorio puts on one tile, the program's last stands.
+     */
     static List<Prototype> inOrder() {
         List<Prototype> out = new ArrayList<>();
         List<Prototype> things = Nauvis.program().prototypes;
         things.stream().filter(p -> p.kind().equals("decorative") && p.decal()).forEach(out::add);
-        things.stream().filter(p -> p.kind().equals("decorative") && !p.decal()).forEach(out::add);
         things.stream().filter(p -> p.type().equals("simple-entity")).forEach(out::add);
         things.stream().filter(p -> p.type().equals("tree")).forEach(out::add);
+        things.reversed().stream().filter(Autoplace::plant).forEach(out::add);
         return out;
+    }
+
+    /** A decorative that stands in the block above the ground: a plant, or a small rock. */
+    private static boolean plant(Prototype p) {
+        return p.kind().equals("decorative") && !p.decal();
     }
 
     /** The Dynamic Trees species that stands for a tree, or null for a bare one, which it leaves alone. */
@@ -112,6 +120,15 @@ final class Autoplace {
             autoplace.addProperty("type", NauvisTerrain.MOD_ID + ":autoplace");
             autoplace.addProperty("entity", p.name());
             placement.add(autoplace);
+            if (plant(p)) {
+                JsonObject air = new JsonObject();
+                air.addProperty("type", "minecraft:matching_blocks");
+                air.addProperty("blocks", "minecraft:air");
+                JsonObject empty = new JsonObject();
+                empty.addProperty("type", "minecraft:block_predicate_filter");
+                empty.add("predicate", air);
+                placement.add(empty);
+            }
             placed.add("placement", placement);
             files.put(NauvisTerrain.MOD_ID + "/worldgen/placed_feature/" + path, placed);
         }

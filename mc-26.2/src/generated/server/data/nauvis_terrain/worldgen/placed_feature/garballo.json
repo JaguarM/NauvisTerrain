@@ -4,6 +4,13 @@
     {
       "type": "nauvis_terrain:autoplace",
       "entity": "garballo"
+    },
+    {
+      "type": "minecraft:block_predicate_filter",
+      "predicate": {
+        "type": "minecraft:matching_blocks",
+        "blocks": "minecraft:air"
+      }
     }
   ]
 }

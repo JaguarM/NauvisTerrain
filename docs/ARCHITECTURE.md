@@ -154,8 +154,10 @@ The world
   water.
 - Trees, rocks and decoratives are features in the biome's vegetation step, one placed feature
   per Factorio prototype under its Factorio name (`nauvis_terrain:tree_08_brown`), each placed by
-  `nauvis_terrain:autoplace` exactly where `Terrain` puts that prototype: decals first, then plants,
-  rocks and trees, so a tree replaces a plant and never the reverse.
+  `nauvis_terrain:autoplace` exactly where `Terrain` puts that prototype: decals first, then rocks
+  and trees, then plants, each only into an empty block. Factorio draws every decorative on a tile;
+  here one block holds one plant, the program's last of those on the tile, and a tree or rock keeps
+  its place.
 - A living tree is a vanilla `minecraft:tree` feature of vanilla logs and leaves inside a
   `minecraft:random_selector` of one, as vanilla lists its trees, Factorio-sized:
   spruce-like for the conifers (`tree-01`, `tree-02`), oak-like for the broadleaves, its leaves the

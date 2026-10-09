@@ -174,6 +174,8 @@ tasks.named('jar', Jar) { duplicatesStrategy = DuplicatesStrategy.EXCLUDE }
 // The gametest world, made anew each run: the gametest server makes it from the minecraft:flat world
 // preset and every datapack in it, and this one is the world preset under that name.
 var gameTestWorld = tasks.register('gameTestWorld', Sync) {
+    // The server writes into the world after this, which Gradle does not count against it.
+    outputs.upToDateWhen { false }
     into 'run/gametest/world'
     from('src/gametest/nauvis_world') {
         into 'datapacks/nauvis_world'

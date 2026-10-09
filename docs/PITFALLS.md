@@ -73,6 +73,8 @@ Noise
 Placement
 ---------
 
+- A `simple_block` feature places into whatever is there. A plant placed on another's tile replaces
+  the lower half of a tall one and leaves its top floating; plants go last, into air only.
 - Tiles are chosen in Factorio's order of autoplacers, by order and then name, and a tie keeps
   the earlier. Taking them in the program's order gives other tiles wherever two probabilities
   meet, which with ranges capped at 1 is often.
@@ -95,4 +97,6 @@ Versions
   blocks refuse (`TerrainBlocks`); a block a pack puts in a tile's place may not, and then the
   sand under a desert tree becomes a patch of dirt.
 - 1.21.1's gametest server keeps its world between runs, so the chunks an older build made are
-  loaded, not generated, and a test passes on them. `gameTestWorld` makes the world anew each run.
+  loaded, not generated, and a test passes on them. `gameTestWorld` makes the world anew each run,
+  and only because it is never up to date: the server's writes into its folder are not its own, so
+  Gradle would count it done.
