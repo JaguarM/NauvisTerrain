@@ -101,6 +101,11 @@ Building
   mirror takes the groups it fails on from Central alone.
 - Loom 1.18 runs only on Gradle 9.7 or newer, and Project Nauvis builds this one inside its own
   Gradle: the two wrappers move together, or the pack stops building.
+- ModDevGradle before 2.0.148 cannot recompile NeoForge 26.3: NeoForge widens
+  `HolderSet.Named.contents()` and not vanilla's anonymous override of it ("attempting to assign
+  weaker access privileges").
+- `runClientData` and `runServerData` in one Gradle call run at once in the same `run/`, and one
+  fails on the other's locked jar-in-jar cache; run them one after the other.
 - A `\n` in `fabric.mod.json` reaches the jar as a line break once `expand` has filled the
   template, which is not JSON; its strings stay on one line.
 

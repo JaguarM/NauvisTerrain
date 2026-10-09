@@ -1,0 +1,11 @@
+[
+  {
+    "cancellers": {
+      "type": "tree",
+      "namespace": "minecraft"
+    },
+    "select": {
+      "name": "nauvis_terrain:nauvis"
+    }
+  }
+]

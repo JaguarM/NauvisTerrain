@@ -1,6 +1,6 @@
 plugins {
     // Applied by each Minecraft version's projects; declared here so they share one copy.
-    id 'net.neoforged.moddev' version '2.0.143' apply false
+    id 'net.neoforged.moddev' version '2.0.148' apply false
     // Loom for an unobfuscated Minecraft (26.x), and Loom that maps an obfuscated one (1.21.1).
     id 'net.fabricmc.fabric-loom' version '1.18.3' apply false
     id 'net.fabricmc.fabric-loom-remap' version '1.18.3' apply false

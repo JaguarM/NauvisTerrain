@@ -1,0 +1,16 @@
+{
+  "feature": "nauvis_terrain:medium_rock",
+  "placement": [
+    {
+      "type": "nauvis_terrain:autoplace",
+      "entity": "medium-rock"
+    },
+    {
+      "type": "minecraft:block_predicate_filter",
+      "predicate": {
+        "type": "minecraft:matching_blocks",
+        "blocks": "minecraft:air"
+      }
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "nauvis_terrain:block/sand_2_0"
+  }
+}

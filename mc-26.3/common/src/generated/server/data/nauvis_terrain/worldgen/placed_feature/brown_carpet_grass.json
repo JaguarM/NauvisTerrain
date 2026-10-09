@@ -1,0 +1,16 @@
+{
+  "feature": "nauvis_terrain:brown_carpet_grass",
+  "placement": [
+    {
+      "type": "nauvis_terrain:autoplace",
+      "entity": "brown-carpet-grass"
+    },
+    {
+      "type": "minecraft:block_predicate_filter",
+      "predicate": {
+        "type": "minecraft:matching_blocks",
+        "blocks": "minecraft:air"
+      }
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "acceptable_soils": [
+    "dirt_like",
+    "sand_like"
+  ],
+  "primitive_soil": "nauvis_terrain:red_desert_0"
+}

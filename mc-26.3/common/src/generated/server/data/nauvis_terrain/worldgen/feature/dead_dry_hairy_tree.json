@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:fallen_tree",
+  "log_decorators": [],
+  "log_length": {
+    "type": "minecraft:uniform",
+    "max_inclusive": 5,
+    "min_inclusive": 3
+  },
+  "stump_decorators": [],
+  "trunk_provider": {
+    "id": "minecraft:dark_oak_log",
+    "properties": {
+      "axis": "y"
+    }
+  }
+}

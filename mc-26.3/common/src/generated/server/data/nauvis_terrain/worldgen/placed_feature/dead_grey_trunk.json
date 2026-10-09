@@ -1,0 +1,9 @@
+{
+  "feature": "nauvis_terrain:dead_grey_trunk",
+  "placement": [
+    {
+      "type": "nauvis_terrain:autoplace",
+      "entity": "dead-grey-trunk"
+    }
+  ]
+}

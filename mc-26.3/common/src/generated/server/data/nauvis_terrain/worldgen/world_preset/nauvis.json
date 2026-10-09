@@ -1,0 +1,117 @@
+{
+  "dimensions": {
+    "minecraft:overworld": {
+      "type": "minecraft:overworld",
+      "generator": {
+        "type": "nauvis_terrain:nauvis",
+        "biome_source": {
+          "type": "minecraft:fixed",
+          "biome": "nauvis_terrain:nauvis"
+        },
+        "settings": {
+          "cliff": {
+            "block": "nauvis_terrain:cliff",
+            "step": 4
+          },
+          "resources": {
+            "coal": "minecraft:coal_ore",
+            "copper-ore": "minecraft:copper_ore",
+            "iron-ore": "minecraft:iron_ore",
+            "stone": "minecraft:stone"
+          },
+          "surface": 64,
+          "tiles": {
+            "deepwater": {
+              "block": "minecraft:water",
+              "depth": 8,
+              "floor": "minecraft:gravel"
+            },
+            "dirt-1": {
+              "block": "nauvis_terrain:dirt_1"
+            },
+            "dirt-2": {
+              "block": "nauvis_terrain:dirt_2"
+            },
+            "dirt-3": {
+              "block": "nauvis_terrain:dirt_3"
+            },
+            "dirt-4": {
+              "block": "nauvis_terrain:dirt_4"
+            },
+            "dirt-5": {
+              "block": "nauvis_terrain:dirt_5"
+            },
+            "dirt-6": {
+              "block": "nauvis_terrain:dirt_6"
+            },
+            "dirt-7": {
+              "block": "nauvis_terrain:dirt_7"
+            },
+            "dry-dirt": {
+              "block": "nauvis_terrain:dry_dirt"
+            },
+            "grass-1": {
+              "block": "nauvis_terrain:grass_1"
+            },
+            "grass-2": {
+              "block": "nauvis_terrain:grass_2"
+            },
+            "grass-3": {
+              "block": "nauvis_terrain:grass_3"
+            },
+            "grass-4": {
+              "block": "nauvis_terrain:grass_4"
+            },
+            "red-desert-0": {
+              "block": "nauvis_terrain:red_desert_0"
+            },
+            "red-desert-1": {
+              "block": "nauvis_terrain:red_desert_1"
+            },
+            "red-desert-2": {
+              "block": "nauvis_terrain:red_desert_2"
+            },
+            "red-desert-3": {
+              "block": "nauvis_terrain:red_desert_3"
+            },
+            "sand-1": {
+              "block": "nauvis_terrain:sand_1"
+            },
+            "sand-2": {
+              "block": "nauvis_terrain:sand_2"
+            },
+            "sand-3": {
+              "block": "nauvis_terrain:sand_3"
+            },
+            "water": {
+              "block": "minecraft:water",
+              "depth": 3,
+              "floor": "minecraft:sand"
+            }
+          }
+        }
+      }
+    },
+    "minecraft:the_end": {
+      "type": "minecraft:the_end",
+      "generator": {
+        "type": "minecraft:noise",
+        "biome_source": {
+          "type": "minecraft:the_end"
+        },
+        "settings": "minecraft:end"
+      }
+    },
+    "minecraft:the_nether": {
+      "type": "minecraft:the_nether",
+      "generator": {
+        "type": "minecraft:noise",
+        "biome_source": {
+          "type": "minecraft:multi_noise",
+          "preset": "minecraft:nether"
+        },
+        "settings": "minecraft:nether"
+      }
+    }
+  }
+}

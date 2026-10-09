@@ -68,8 +68,8 @@ One mod, built for each Minecraft version and loader on what they share:
 - Each mod compiles core's and common's sources and resources into its own jar,
   `nauvis_terrain-<loader>-<version>-<mod version>.jar`, so the jar stands alone.
 - 26.2 is the version the mod is developed on, and Project Nauvis's; a change lands there first,
-  then in each other version. `mc-1.21.1` keeps 26.2's files and names, written against 1.21.1
-  (`API-1.21.1.md`), so a change carries over file by file.
+  then in each other version. `mc-26.3` and `mc-1.21.1` keep 26.2's files and names, written
+  against their own version (`API-26.3.md`, `API-1.21.1.md`), so a change carries over file by file.
 - A seed makes the same world in every version, block for block, but for blocks a version lacks
   (`GAPS.md`, on 1.21.1).
 

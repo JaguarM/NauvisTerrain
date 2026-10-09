@@ -1,7 +1,7 @@
 Nauvis Terrain
 ==============
 
-Factorio 2.0's Nauvis as a world type for Minecraft 26.2 and 1.21.1, on NeoForge and Fabric: its
+Factorio 2.0's Nauvis as a world type for Minecraft 26.2, 26.3 and 1.21.1, on NeoForge and Fabric: its
 ground, water, cliffs, trees, rocks, decoratives and ore patches, laid out by Factorio's own noise
 expressions on a flat world, one tile to a block. `core/` is what every Minecraft version shares and
 `mc-<version>/` that version's mods, on what they share in its `common/` (`docs/ARCHITECTURE.md`,
@@ -30,7 +30,7 @@ Non-negotiables
    modifiers, loot tables, tags.
 5. **Verify every Minecraft API against its version's decompiled sources.** Minecraft 26.2
    postdates training, 1.21.1 names much of it otherwise, and guessed names fail silently.
-   `docs/API-26.2.md` and `docs/API-1.21.1.md` say where the sources are.
+   `docs/API-26.2.md`, `docs/API-26.3.md` and `docs/API-1.21.1.md` say where the sources are.
 6. **Core knows nothing of Minecraft.** `core/` compiles with no Minecraft on its classpath, so
    the evaluator runs, renders and is tested without booting the game, and every version's mod is
    built on the same core.

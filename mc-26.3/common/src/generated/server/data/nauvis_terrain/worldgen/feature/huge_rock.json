@@ -1,0 +1,23 @@
+{
+  "type": "nauvis_terrain:boulder",
+  "blocks": {
+    "type": "minecraft:weighted",
+    "entries": [
+      {
+        "data": {
+          "id": "minecraft:coal_ore"
+        },
+        "weight": 1
+      },
+      {
+        "data": {
+          "id": "minecraft:stone"
+        },
+        "weight": 1
+      }
+    ]
+  },
+  "height": 2,
+  "length": 2,
+  "width": 3
+}

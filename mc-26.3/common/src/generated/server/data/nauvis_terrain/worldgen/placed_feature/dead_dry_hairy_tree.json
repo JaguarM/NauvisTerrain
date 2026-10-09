@@ -1,0 +1,9 @@
+{
+  "feature": "nauvis_terrain:dead_dry_hairy_tree",
+  "placement": [
+    {
+      "type": "nauvis_terrain:autoplace",
+      "entity": "dead-dry-hairy-tree"
+    }
+  ]
+}

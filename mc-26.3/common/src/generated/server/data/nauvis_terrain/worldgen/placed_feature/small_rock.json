@@ -1,0 +1,16 @@
+{
+  "feature": "nauvis_terrain:small_rock",
+  "placement": [
+    {
+      "type": "nauvis_terrain:autoplace",
+      "entity": "small-rock"
+    },
+    {
+      "type": "minecraft:block_predicate_filter",
+      "predicate": {
+        "type": "minecraft:matching_blocks",
+        "blocks": "minecraft:air"
+      }
+    }
+  ]
+}

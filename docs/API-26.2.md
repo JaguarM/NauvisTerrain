@@ -10,7 +10,7 @@ Where the sources are
 - Minecraft: `~/.gradle/caches/neoformruntime/intermediate_results/mergeWithSources_*_output.jar`,
   one per version; `mergeWithSources_0fead73...` is 26.2. `unzip -p <jar> net/minecraft/.../X.java`.
 - NeoForge: `~/.gradle/caches/modules-2/files-2.1/net.neoforged/neoforge/<version>/*/neoforge-<version>-sources.jar`.
-- Toolchain: Java 25, NeoForge 26.2.0.59, ModDevGradle 2.0.143.
+- Toolchain: Java 25, NeoForge 26.2.0.59, ModDevGradle 2.0.148.
 - Project Nauvis's `docs/API-26.2.md` has the renames met so far across a whole modpack.
 
 Renames

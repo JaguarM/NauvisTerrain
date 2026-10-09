@@ -12,7 +12,7 @@ Where the sources are
   made by `./gradlew :mc-1.21.1:neoforge:createMinecraftArtifacts`. `unzip -p <jar> net/minecraft/.../X.java`.
 - Vanilla's data and assets: `neoforge-21.1.255-client-extra-aka-minecraft-resources.jar` beside it,
   `data/minecraft/worldgen/` among them: the shape every worldgen JSON here must have.
-- Toolchain: Java 21, NeoForge 21.1.255, ModDevGradle 2.0.143, FML 4.0.45.
+- Toolchain: Java 21, NeoForge 21.1.255, ModDevGradle 2.0.148, FML 4.0.45.
 
 26.2's names in 1.21.1
 ----------------------

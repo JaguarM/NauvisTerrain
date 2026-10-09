@@ -75,10 +75,17 @@ loom {
     }
 
     runs {
+        // An IDE configuration for each run, named apart from every other version's.
+        configureEach {
+            ideConfigGenerated(true)
+            appendProjectPathToDisplayName = false
+            configName = "Fabric ${versions.minecraft_version} ${it.name.capitalize()}"
+            ideConfigFolder = "Minecraft ${versions.minecraft_version}"
+        }
+
         // Fabric API's headless gametest server: vanilla's tests, in a world gameTestWorld makes Nauvis.
         gameTestServer {
             server()
-            configName = 'Game Test Server'
             vmArg '-Dfabric-api.gametest'
             runDir 'run/gametest'
         }

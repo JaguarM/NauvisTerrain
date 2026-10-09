@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:disk",
+  "half_height": 0,
+  "radius": 6,
+  "state_provider": {
+    "id": "nauvis_terrain:sand_1"
+  },
+  "target": {
+    "type": "minecraft:matching_block_tag",
+    "tag": "nauvis_terrain:ground"
+  }
+}

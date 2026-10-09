@@ -74,6 +74,16 @@ loom {
             sourceSet sourceSets.main
         }
     }
+
+    runs {
+        // An IDE configuration for each run, named apart from every other version's.
+        configureEach {
+            ideConfigGenerated(true)
+            appendProjectPathToDisplayName = false
+            configName = "Fabric ${versions.minecraft_version} ${it.name.capitalize()}"
+            ideConfigFolder = "Minecraft ${versions.minecraft_version}"
+        }
+    }
 }
 
 // MIT requires the notice to travel with every copy, and a jar is a copy.

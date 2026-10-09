@@ -1,0 +1,16 @@
+{
+  "feature": "nauvis_terrain:brown_hairy_grass",
+  "placement": [
+    {
+      "type": "nauvis_terrain:autoplace",
+      "entity": "brown-hairy-grass"
+    },
+    {
+      "type": "minecraft:block_predicate_filter",
+      "predicate": {
+        "type": "minecraft:matching_blocks",
+        "blocks": "minecraft:air"
+      }
+    }
+  ]
+}

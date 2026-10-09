@@ -1,0 +1,9 @@
+{
+  "type": "nauvis_terrain:boulder",
+  "blocks": {
+    "id": "minecraft:stone"
+  },
+  "height": 2,
+  "length": 2,
+  "width": 2
+}

@@ -13,4 +13,5 @@ plugins {
 // (docs/ARCHITECTURE.md, versions).
 include 'core'
 include 'mc-26.2:common', 'mc-26.2:neoforge', 'mc-26.2:fabric'
+include 'mc-26.3:common', 'mc-26.3:neoforge', 'mc-26.3:fabric'
 include 'mc-1.21.1:common', 'mc-1.21.1:neoforge', 'mc-1.21.1:fabric'

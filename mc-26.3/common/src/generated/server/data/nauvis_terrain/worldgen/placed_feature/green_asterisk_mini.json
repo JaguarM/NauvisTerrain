@@ -1,0 +1,16 @@
+{
+  "feature": "nauvis_terrain:green_asterisk_mini",
+  "placement": [
+    {
+      "type": "nauvis_terrain:autoplace",
+      "entity": "green-asterisk-mini"
+    },
+    {
+      "type": "minecraft:block_predicate_filter",
+      "predicate": {
+        "type": "minecraft:matching_blocks",
+        "blocks": "minecraft:air"
+      }
+    }
+  ]
+}

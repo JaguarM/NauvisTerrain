@@ -1,0 +1,16 @@
+{
+  "feature": "nauvis_terrain:brown_fluff",
+  "placement": [
+    {
+      "type": "nauvis_terrain:autoplace",
+      "entity": "brown-fluff"
+    },
+    {
+      "type": "minecraft:block_predicate_filter",
+      "predicate": {
+        "type": "minecraft:matching_blocks",
+        "blocks": "minecraft:air"
+      }
+    }
+  ]
+}

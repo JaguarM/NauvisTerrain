@@ -1,0 +1,16 @@
+{
+  "feature": "nauvis_terrain:green_desert_bush",
+  "placement": [
+    {
+      "type": "nauvis_terrain:autoplace",
+      "entity": "green-desert-bush"
+    },
+    {
+      "type": "minecraft:block_predicate_filter",
+      "predicate": {
+        "type": "minecraft:matching_blocks",
+        "blocks": "minecraft:air"
+      }
+    }
+  ]
+}

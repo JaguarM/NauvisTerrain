@@ -95,6 +95,9 @@ neoForge {
         }
 
         configureEach {
+            // Every version's runs have the same names; these keep their IDE configurations apart.
+            it.ideName = "NeoForge ${versions.minecraft_version} ${it.name.capitalize()}"
+            it.ideFolderName = "Minecraft ${versions.minecraft_version}"
             systemProperty 'forge.logging.markers', 'REGISTRIES'
             logLevel = org.slf4j.event.Level.DEBUG
         }

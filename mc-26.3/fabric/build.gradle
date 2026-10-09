@@ -1,0 +1,116 @@
+plugins {
+    id 'net.fabricmc.fabric-loom'
+}
+
+// This version's Minecraft, NeoForge and Fabric versions.
+def versions = new Properties()
+file('../versions.properties').withInputStream { versions.load(it) }
+
+version = mod_version
+group = mod_group_id
+
+base {
+    archivesName = "${mod_id}-fabric-${versions.minecraft_version}"
+}
+
+// Mojang ships Java 25 to end users in 26.x, so mods should target Java 25.
+java.toolchain.languageVersion = JavaLanguageVersion.of(25)
+
+repositories {
+    mavenCentral()
+}
+
+// core and this version's common are compiled into this jar from their sources; the project
+// dependencies are there for the IDE.
+configurations {
+    sharedJava {
+        canBeConsumed = false
+    }
+    sharedResources {
+        canBeConsumed = false
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${versions.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${versions.fabric_loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${versions.fabric_api_version}"
+
+    compileOnly project(':core')
+    compileOnly project(':mc-26.3:common')
+    sharedJava project(path: ':core', configuration: 'coreJava')
+    sharedJava project(path: ':mc-26.3:common', configuration: 'commonJava')
+    sharedResources project(path: ':core', configuration: 'coreResources')
+    sharedResources project(path: ':mc-26.3:common', configuration: 'commonResources')
+}
+
+tasks.named('compileJava', JavaCompile) {
+    source configurations.sharedJava
+    options.encoding = 'UTF-8'
+}
+
+tasks.named('processResources', ProcessResources) {
+    from(configurations.sharedResources) {
+        exclude '**/.cache'
+    }
+    var replaceProperties = [
+            mod_id               : mod_id,
+            mod_name             : mod_name,
+            mod_license          : mod_license,
+            mod_version          : mod_version,
+            minecraft_version    : versions.minecraft_version,
+            fabric_loader_version: versions.fabric_loader_version,
+    ]
+    inputs.properties replaceProperties
+    filesMatching('fabric.mod.json') {
+        expand replaceProperties
+    }
+}
+
+loom {
+    mods {
+        "${mod_id}" {
+            sourceSet sourceSets.main
+        }
+    }
+
+    runs {
+        // An IDE configuration for each run, named apart from every other version's.
+        configureEach {
+            ideConfigGenerated(true)
+            appendProjectPathToDisplayName = false
+            configName = "Fabric ${versions.minecraft_version} ${it.name.capitalize()}"
+            ideConfigFolder = "Minecraft ${versions.minecraft_version}"
+        }
+
+        // Fabric API's headless gametest server: vanilla's tests, in a world gameTestWorld makes Nauvis.
+        gameTestServer {
+            server()
+            vmArg '-Dfabric-api.gametest'
+            runDir 'run/gametest'
+        }
+    }
+}
+
+// The gametest world, made anew each run: the server makes it from the minecraft:flat_all_dimensions world preset and
+// every datapack in it, and this one is the world preset under that name.
+var gameTestWorld = tasks.register('gameTestWorld', Sync) {
+    // The server writes into the world after this, which Gradle does not count against it.
+    outputs.upToDateWhen { false }
+    into 'run/gametest/world'
+    from('../common/src/gametest/nauvis_world') {
+        into 'datapacks/nauvis_world'
+    }
+    from('../common/src/generated/server/data/nauvis_terrain/worldgen/world_preset/nauvis.json') {
+        into 'datapacks/nauvis_world/data/minecraft/worldgen/world_preset'
+        rename { 'flat_all_dimensions.json' }
+    }
+}
+tasks.matching { it.name == 'runGameTestServer' }.configureEach { dependsOn gameTestWorld }
+
+// MIT requires the notice to travel with every copy, and a jar is a copy.
+tasks.named('jar', Jar) {
+    from(rootProject.file('LICENSE.txt')) {
+        into('META-INF')
+    }
+}
