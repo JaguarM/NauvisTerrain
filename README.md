@@ -28,5 +28,5 @@ Building
 ./gradlew build
 ```
 
-Each version's jar lands in `mc-<version>/build/libs/`, `nauvis_terrain-<version>-<mod
+Each jar lands in `mc-<version>/<loader>/build/libs/`, `nauvis_terrain-<loader>-<version>-<mod
 version>.jar`. The game runs 26.2's on Java 25 and 1.21.1's on Java 21.

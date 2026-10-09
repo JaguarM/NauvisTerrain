@@ -10,5 +10,5 @@ plugins {
 
 // What every Minecraft version shares, then the mod for each version (docs/ARCHITECTURE.md, versions).
 include 'core'
-include 'mc-26.2'
-include 'mc-1.21.1'
+include 'mc-26.2:common', 'mc-26.2:neoforge'
+include 'mc-1.21.1:common', 'mc-1.21.1:neoforge'

@@ -1,0 +1,60 @@
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev'
+}
+
+// This version's Minecraft, NeoForge and Fabric versions.
+def versions = new Properties()
+file('../versions.properties').withInputStream { versions.load(it) }
+
+// Minecraft's own code for this version, shared by its NeoForge and Fabric mods: checked here
+// against vanilla alone, and compiled into each mod's jar from its sources.
+java.toolchain.languageVersion = JavaLanguageVersion.of(25)
+
+repositories {
+    // Central for these groups, never the NeoForged mirror (docs/PITFALLS.md, building).
+    exclusiveContent {
+        forRepository { mavenCentral() }
+        filter {
+            includeGroup 'com.google.errorprone'
+            includeGroup 'com.fasterxml.jackson'
+            includeGroup 'org.apache.logging.log4j'
+        }
+    }
+    mavenCentral()
+}
+
+neoForge {
+    neoFormVersion = versions.neo_form_version
+}
+
+dependencies {
+    compileOnly project(':core')
+}
+
+sourceSets.main.resources {
+    srcDir 'src/generated/client'
+    srcDir 'src/generated/server'
+    exclude '**/.cache'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+// What each mod of this version compiles into its jar: these sources and resources, not a jar of them.
+configurations {
+    commonJava {
+        canBeConsumed = true
+        canBeResolved = false
+    }
+    commonResources {
+        canBeConsumed = true
+        canBeResolved = false
+    }
+}
+artifacts {
+    commonJava file('src/main/java')
+    commonResources file('src/generated/client')
+    commonResources file('src/generated/server')
+}

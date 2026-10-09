@@ -49,17 +49,19 @@ anything is built in Minecraft.
 Versions
 --------
 
-One mod, built for each Minecraft version on what they share:
+One mod, built for each Minecraft version and loader on what they share:
 
 - `core/` is everything that is not Minecraft's API: Factorio's noise and map generator (the
   `noise` package), the noise program, how its map becomes blocks (`Terraces`: terraces, cliff
   faces, pools and the stone beneath), the map generator screen's settings (`NauvisMap`) and the
   textures. It compiles with no Minecraft on its classpath, for Java 21 and against the oldest
   Gson a version ships, so every version runs it as it is.
-- `mc-<version>/` is the mod for one Minecraft version: registration, the chunk generator,
-  features, data generation, screens and gametests, written against that version's API. It
-  compiles core's sources and resources into its own jar, `nauvis_terrain-<version>-<mod
-  version>.jar`, so the jar stands alone.
+- `mc-<version>/common/` is Minecraft's own code for one version, the same on every loader: the
+  chunk generator and its ground, the features, the blocks the world adds, the map generator
+  screen, and the data datagen makes. It compiles against vanilla alone.
+- `mc-<version>/neoforge/` is the mod for one version on NeoForge: registration, the client's
+  hooks, data generation and gametests. It compiles core's and common's sources and resources into
+  its own jar, `nauvis_terrain-neoforge-<version>-<mod version>.jar`, so the jar stands alone.
 - 26.2 is the version the mod is developed on, and Project Nauvis's; a change lands there first,
   then in each other version. `mc-1.21.1` keeps 26.2's files and names, written against 1.21.1
   (`API-1.21.1.md`), so a change carries over file by file.

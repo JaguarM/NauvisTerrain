@@ -87,6 +87,15 @@ Placement
   later ones: chunks must be done in one fixed order. The order Minecraft asks for them in changes
   with every player and thread.
 
+Building
+--------
+
+- The NeoForged maven's mirror now and then serves an empty file with HTTP 200 for a third-party
+  library: "Content is not allowed in prolog" is an empty `.pom` read as XML, "zip file is empty"
+  or "zip END header not found" an empty `.jar`, and the Gradle cache folder is named
+  da39a3ee5e6b4b0d3255bfef95601890afd80709, the SHA-1 of nothing. Each build that reaches the
+  mirror takes the groups it fails on from Central alone.
+
 Versions
 --------
 

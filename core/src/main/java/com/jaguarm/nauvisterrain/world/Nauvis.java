@@ -5,6 +5,9 @@ import com.jaguarm.nauvisterrain.noise.NoiseProgram.Prototype;
 
 /** Nauvis's noise program, read from the jar once, and the names its prototypes go by in Minecraft. */
 public final class Nauvis {
+    /** The namespace of everything the mod adds. */
+    public static final String MOD_ID = "nauvis_terrain";
+
     private static volatile NoiseProgram program;
 
     private Nauvis() {

@@ -4,12 +4,12 @@ Nauvis Terrain
 Factorio 2.0's Nauvis as a NeoForge world type for Minecraft 26.2 and 1.21.1: its ground, water,
 cliffs, trees, rocks, decoratives and ore patches, laid out by Factorio's own noise expressions on a
 flat world, one tile to a block. `core/` is what every Minecraft version shares and `mc-<version>/`
-the mod for one (`docs/ARCHITECTURE.md`, versions). `docs/NEXT.md` says what to pick up and how to
-run everything. Read `docs/PITFALLS.md` before writing code and `docs/API-<version>.md` before
-writing against a version's Minecraft API. `docs/ARCHITECTURE.md` is the rules the world is built
-to, `docs/FACTORIO.md` what Factorio's install and dump hold about Nauvis, `docs/NOISE.md`
-Factorio's noise language and how its engine computes each built-in, `docs/GAPS.md` what is
-deliberately missing.
+that version's mods, on what they share in its `common/` (`docs/ARCHITECTURE.md`, versions).
+`docs/NEXT.md` says what to pick up and how to run everything. Read `docs/PITFALLS.md` before
+writing code and `docs/API-<version>.md` before writing against a version's Minecraft API.
+`docs/ARCHITECTURE.md` is the rules the world is built to, `docs/FACTORIO.md` what Factorio's
+install and dump hold about Nauvis, `docs/NOISE.md` Factorio's noise language and how its engine
+computes each built-in, `docs/GAPS.md` what is deliberately missing.
 
 Non-negotiables
 ---------------
