@@ -18,7 +18,9 @@ import java.util.function.ToIntFunction;
  * the world). Land rises in terraces, a step at each of Factorio's cliff levels: a cliff face where
  * Factorio draws a cliff, a ramp where it leaves a gap. Each land column is its tile from the
  * lowest terrace up, a liquid tile is a pool cut in at the lowest terrace, and below that is stone,
- * deepslate and bedrock. Each Minecraft version's chunk generator gives each kind its block.
+ * deepslate and bedrock. Near water both follow Factorio's elevation: a pool deepens as it falls
+ * below zero, and land rises from the water as it climbs above. Each Minecraft version's chunk
+ * generator gives each kind its block.
  */
 public final class Terraces {
     /** The world preset's y of the lowest terrace's top block, and how many blocks one cliff level rises. */
@@ -32,14 +34,21 @@ public final class Terraces {
     private static final int LOWEST_LEVEL = -1;
     /** In a gap, the last part of a level's span, as a share of the interval, over which land ramps up to the next. */
     private static final double RAMP = 0.1;
+    /** Blocks a pool deepens for each unit of elevation below zero. */
+    private static final double DEEPENING = 1;
+    /** Blocks land rises from a pool's water for each unit of elevation above zero, up to its terrace. */
+    private static final double BANK = 2;
     private static final int[][] NEIGHBOURS = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
     private static final int PLACED_KEPT = 4096;
 
     /** What a block of the ground is: its column's tile, a cliff's face, a pool's bed, or what lies under the land. */
     public enum Layer { AIR, TILE, CLIFF, FLOOR, STONE, DEEPSLATE, BEDROCK }
 
-    /** One column's shape: its tile, the y of its top block, and the lowest y of its cliff face, if it has one. */
-    public record Column(int tile, int top, int faceFrom) {
+    /**
+     * One column's shape: its tile, the y of its top block, the lowest y of its cliff face, if it has
+     * one, and a pool's bed, the y of its floor.
+     */
+    public record Column(int tile, int top, int faceFrom, int bed) {
     }
 
     /** The block a tree, rock or decorative stands in: the one above its tile's top. */
@@ -59,8 +68,8 @@ public final class Terraces {
 
     /**
      * The ground of a world seed under the map generator screen's settings: the lowest terrace's top
-     * at `surface`, `step` blocks to a cliff level, and each tile's pool `depth` deep, by its
-     * Factorio name, which is 1 for land.
+     * at `surface`, `step` blocks to a cliff level, and each tile's pool at most `depth` deep, by its
+     * Factorio name, which is 0 for land.
      */
     public Terraces(NauvisMap map, long worldSeed, int surface, int step, ToIntFunction<String> depth) {
         this.mapSeed = worldSeed & 0xFFFFFFFFL;
@@ -73,13 +82,8 @@ public final class Terraces {
         this.depth = terrain.tiles.stream().mapToInt(t -> depth.applyAsInt(t.name())).toArray();
     }
 
-    /** How deep a tile's pool is cut into the land, or 1 for land. */
-    public int depth(int tile) {
-        return depth[tile];
-    }
-
     public boolean liquid(int tile) {
-        return depth[tile] > 1;
+        return depth[tile] > 0;
     }
 
     public Prototype tile(int x, int z) {
@@ -98,21 +102,21 @@ public final class Terraces {
     public Column column(Terrain.Area area, int x, int z) {
         int tile = area.tileIndex(x, z);
         if (liquid(tile)) {
-            return new Column(tile, surface, Integer.MAX_VALUE);
+            int deep = (int) Math.floor(1 - area.elevation(x, z) * DEEPENING);
+            return new Column(tile, surface, Integer.MAX_VALUE, surface - Math.min(Math.max(deep, 1), depth[tile]));
         }
-        int top = landTop(area, x, z);
+        int terrace = terraceTop(area, x, z);
         int faceFrom = Integer.MAX_VALUE;
         if (area.cliffiness(x, z) > 0.5) {
             for (int[] d : NEIGHBOURS) {
-                if (!liquid(area.tileIndex(x + d[0], z + d[1]))) {
-                    int below = landTop(area, x + d[0], z + d[1]);
-                    if (below < top) {
-                        faceFrom = Math.min(faceFrom, below + 1);
-                    }
+                int nx = x + d[0];
+                int nz = z + d[1];
+                if (!liquid(area.tileIndex(nx, nz)) && terraceTop(area, nx, nz) < terrace) {
+                    faceFrom = Math.min(faceFrom, landTop(area, nx, nz) + 1);
                 }
             }
         }
-        return new Column(tile, top, faceFrom);
+        return new Column(tile, landTop(area, x, z), faceFrom, Integer.MIN_VALUE);
     }
 
     /** What the block at y is in a column, in a world whose lowest y is `minY`. */
@@ -120,13 +124,11 @@ public final class Terraces {
         if (y > column.top) {
             return Layer.AIR;
         }
-        int tile = column.tile;
-        if (liquid(tile)) {
-            int bed = surface - depth[tile];
-            if (y > bed) {
+        if (liquid(column.tile)) {
+            if (y > column.bed) {
                 return Layer.TILE;
             }
-            if (y == bed) {
+            if (y == column.bed) {
                 return Layer.FLOOR;
             }
         } else if (y >= surface) {
@@ -176,8 +178,14 @@ public final class Terraces {
         return out;
     }
 
-    /** A land column's top: its terrace, and in a gap, its share of the ramp up to the next. */
+    /** A land column's top: its terrace, but no higher than its bank rises from the water. */
     private int landTop(Terrain.Area area, int x, int z) {
+        int bank = surface + (int) Math.floor(Math.max(area.elevation(x, z), 0) * BANK);
+        return Math.min(terraceTop(area, x, z), bank);
+    }
+
+    /** A land column's terrace, and in a gap, its share of the ramp up to the next. */
+    private int terraceTop(Terrain.Area area, int x, int z) {
         double u = (area.cliffElevation(x, z) - cliffElevation0) / cliffInterval;
         int level = (int) Math.floor(u);
         if (level < LOWEST_LEVEL) {

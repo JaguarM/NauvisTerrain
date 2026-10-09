@@ -32,7 +32,7 @@ final class Ground {
     Ground(NauvisSettings settings, long worldSeed) {
         this.terraces = new Terraces(settings.map(), worldSeed, settings.surface(), settings.cliff().step(), name -> {
             NauvisSettings.Tile tile = tile(settings, name);
-            return tile.block().getFluidState().isEmpty() ? 1 : tile.depth();
+            return tile.block().getFluidState().isEmpty() ? 0 : tile.depth();
         });
         this.cliff = settings.cliff().block();
         this.resources = settings.resources();
@@ -75,8 +75,7 @@ final class Ground {
                 }
                 int tile = column.tile();
                 boolean liquid = terraces.liquid(tile);
-                oceanFloor.update(x, liquid ? terraces.surface - terraces.depth(tile) : column.top(), z,
-                        liquid ? floor[tile] : block[tile]);
+                oceanFloor.update(x, liquid ? column.bed() : column.top(), z, liquid ? floor[tile] : block[tile]);
                 worldSurface.update(x, column.top(), z, block[tile]);
             }
         }

@@ -116,9 +116,12 @@ The world
   generator settings (`NauvisMap`): the cliff interval is 40 over the frequency, as in Factorio,
   and a preset swaps its properties as Factorio's do. The generator lists the sliders and the
   presets in the program, from the dump and Factorio's English.
-- The world is flat between cliffs. Land is one height on each terrace; Factorio's `elevation`
-  decides only where water is. `water` is vanilla water 3 deep over sand, `deepwater` 8 deep over
-  gravel, cut into the ground.
+- The world is flat between cliffs, but by water. Land is one height on each terrace, and
+  Factorio's `elevation` decides where water is and the ground's height around it: a pool is a
+  block deeper for each unit the elevation falls below zero, up to 3 for `water`, over sand, and 8
+  for `deepwater`, over gravel, and land rises from a pool's water two blocks for each unit above
+  zero until it meets its terrace. Lakes have beaches, beds that fall away and banks that slope; no
+  cliff stands where land rises from water, as Factorio's cliffiness is nothing there.
 - A Factorio tile is a block of its own, `nauvis_terrain:<tile>`, shovel work that drops itself.
   Its textures are four of Factorio's own variants of the tile at 16 pixels and six colours
   (`tools/make_textures.py`), each block one of the four at one of four turns; the cliff's are
@@ -135,8 +138,8 @@ The world
   leaves a gap, the land ramps up over the last tenth of the level's span instead, a few blocks
   wide. A cliff's top is still its tile.
 - Every pool lies on the lowest terrace, so water is always level and never spills down a step: a
-  lake on a plateau is a pool sunk into it. A raised land column is its tile's block from the
-  lowest terrace up, so a bank cut into it shows soil and a cliff shows rock.
+  lake on a plateau lies in a hollow its banks slope down into. A raised land column is its tile's
+  block from the lowest terrace up, so a bank cut into it shows soil and a cliff shows rock.
 - The top block is the tile's, over stone, deepslate and bedrock, with vanilla's blends between
   them. No caves, no aquifers.
 - An ore replaces the ground where Factorio puts a resource: iron, copper, coal and stone, as

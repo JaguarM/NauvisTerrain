@@ -31,7 +31,7 @@ public record NauvisSettings(int surface, Map<String, Tile> tiles, Map<String, B
 
     /**
      * One tile's blocks. A ground tile is its block on top of the land; a liquid tile is a pool of
-     * its block `depth` deep, cut into the land, on a bed of `floor`.
+     * its block at most `depth` deep, cut into the land, on a bed of `floor`.
      */
     public record Tile(BlockState block, int depth, Optional<BlockState> floor) {
         public static final Codec<Tile> CODEC = RecordCodecBuilder.create(i -> i.group(

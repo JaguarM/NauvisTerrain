@@ -47,7 +47,7 @@ import java.util.concurrent.CompletableFuture;
  */
 @EventBusSubscriber(modid = NauvisTerrain.MOD_ID)
 public final class TerrainData {
-    /** How deep each water tile is cut into the land, and what it lies on. */
+    /** How deep each water tile gets at most, and what it lies on. */
     private static final Map<String, String[]> WATER = Map.of(
             "water", new String[]{"3", "minecraft:sand"},
             "deepwater", new String[]{"8", "minecraft:gravel"});

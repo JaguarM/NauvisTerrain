@@ -8,22 +8,23 @@ Where the mod stands
 
 A world type, `nauvis_terrain:nauvis`: Factorio's Nauvis ground, water and starting lake on terraces
 4 blocks apart at Factorio's cliff levels, with cliff faces where Factorio draws cliffs and ramps in
-its gaps; its tiles as blocks of their own with textures from Factorio's, over vanilla's
-underground; its iron, copper, coal and stone patches as vanilla ore blocks one deep; and its trees,
-rocks and decoratives as vanilla trees, plants and boulders. The world type's Customize button is
-Factorio's map generator screen, presets included. `tools/gen_terrain.py` turns the dump into the
-noise program (`core/src/main/resources/nauvis_terrain/noise/nauvis.json`, 1744 nodes, 113 roots),
-core's `noise` package runs it with the engine's built-ins as `factorio.exe` computes them, and
-places tiles, trees, rocks, ores and decoratives as Factorio's map generator does: around the start
-every one is Factorio's (`FACTORIO.md`, what the oracle checks). Core's `Terraces` lays it out in
-blocks; `mc-26.2` is the mod for Minecraft 26.2 and `mc-1.21.1` the same for 1.21.1
-(`ARCHITECTURE.md`, versions). A new world starts on it. Project Nauvis runs it as its world, an
-`includeBuild` at runtime in the pack mod: the pack places no ore of its own, its drill takes this
-world's ores, and its oil fields and natural water reach the biome through
-`#minecraft:is_overworld`. `./gradlew test` renders seed 123 into `core/build/nauvis-123-512.png`;
-each version's `runGameTestServer` checks chunks of a real Nauvis world and measures it: 83 full
-chunks a second over 400, where vanilla's Nether in the same run makes 37 (1.21.1: 83 and 34).
-Both versions have been played in a client and look right.
+its gaps, and shores, lake beds and banks that follow Factorio's elevation; its tiles as blocks of
+their own with textures from Factorio's, over vanilla's underground; its iron, copper, coal and
+stone patches as vanilla ore blocks one deep; and its trees, rocks and decoratives as vanilla trees,
+plants and boulders. The world type's Customize button is Factorio's map generator screen, presets
+included. `tools/gen_terrain.py` turns the dump into the noise program
+(`core/src/main/resources/nauvis_terrain/noise/nauvis.json`, 1744 nodes, 113 roots), core's `noise`
+package runs it with the engine's built-ins as `factorio.exe` computes them, and places tiles,
+trees, rocks, ores and decoratives as Factorio's map generator does: around the start every one is
+Factorio's (`FACTORIO.md`, what the oracle checks). Core's `Terraces` lays it out in blocks;
+`mc-26.2` is the mod for Minecraft 26.2 and `mc-1.21.1` the same for 1.21.1 (`ARCHITECTURE.md`,
+versions). A new world starts on it. Project Nauvis runs it as its world, an `includeBuild` at
+runtime in the pack mod: the pack places no ore of its own, its drill takes this world's ores, and
+its oil fields and natural water reach the biome through `#minecraft:is_overworld`. `./gradlew test`
+renders seed 123 into `core/build/nauvis-123-512.png`; each version's `runGameTestServer` checks
+chunks of a real Nauvis world and measures it: 83 full chunks a second over 400, where vanilla's
+Nether in the same run makes 37 (1.21.1: 83 and 34). Both versions have been played in a client and
+look right.
 
 The jobs
 --------

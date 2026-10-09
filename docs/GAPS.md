@@ -10,12 +10,13 @@ Each a decision. If something looks broken, look here before treating it as a bu
   Factorio's would give.
 - An ore near a start removes a tree on its tile by Factorio's chance, but the draw is a hash here:
   Factorio takes it from the game's own random generator, which no chunk can know.
-- Land is one height between cliffs. Factorio's `elevation` decides only where water is. *Kept.*
+- Land is one height between cliffs but by water, where it follows Factorio's `elevation` down to
+  the water and under it. Factorio's water is flat ground beside flat water. *Kept.*
 - Cliffs follow the contours tile by tile, not on Factorio's 4 by 4 grid of cliff pieces, and a
   gap is a ramp. They are not entities, so they keep no tree, rock or decorative off, and no ore
   clears them. *Kept.*
-- A lake on a plateau is a pool sunk into it: water lies only on the lowest terrace. Factorio's is
-  flat ground beside flat water. *Kept.*
+- A lake on a plateau lies in a hollow its banks slope down into: water lies only on the lowest
+  terrace. *Kept.*
 - Cliff levels below -1 are on the lowest terrace; under 1% of the map.
 - No uranium and no crude oil: vanilla has no block for either.
 - An ore's richness is not kept: a patch is one block deep and every block is one vanilla ore.
