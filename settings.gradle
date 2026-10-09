@@ -1,6 +1,7 @@
 pluginManagement {
     repositories {
         gradlePluginPortal()
+        maven { url = 'https://maven.fabricmc.net/' }
     }
 }
 
@@ -8,7 +9,8 @@ plugins {
     id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
 }
 
-// What every Minecraft version shares, then the mod for each version (docs/ARCHITECTURE.md, versions).
+// What every Minecraft version shares, then each version's: what its loaders share, and a mod per loader
+// (docs/ARCHITECTURE.md, versions).
 include 'core'
-include 'mc-26.2:common', 'mc-26.2:neoforge'
-include 'mc-1.21.1:common', 'mc-1.21.1:neoforge'
+include 'mc-26.2:common', 'mc-26.2:neoforge', 'mc-26.2:fabric'
+include 'mc-1.21.1:common', 'mc-1.21.1:neoforge', 'mc-1.21.1:fabric'

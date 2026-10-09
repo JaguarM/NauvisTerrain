@@ -174,7 +174,7 @@ var gameTestWorld = tasks.register('gameTestWorld', Sync) {
     // The server writes into the world after this, which Gradle does not count against it.
     outputs.upToDateWhen { false }
     into 'run/gametest/world'
-    from('src/gametest/nauvis_world') {
+    from('../common/src/gametest/nauvis_world') {
         into 'datapacks/nauvis_world'
     }
     from('../common/src/generated/resources/data/nauvis_terrain/worldgen/world_preset/nauvis.json') {

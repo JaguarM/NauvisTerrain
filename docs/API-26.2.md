@@ -79,3 +79,20 @@ generated file with a hand-written twin fails `processResources` as a duplicate;
 hand-written one. `data/<ns>/loot_table/` is singular. A flat item icon needs both
 `assets/<ns>/items/<name>.json` and `models/item/<name>.json`. `Block.getLootTable()` is
 `Optional`; `noLootTable()` makes it empty and datagen skips it.
+
+Fabric
+------
+
+- Loom is `net.fabricmc.fabric-loom` (no mappings: 26.x is unobfuscated), with `minecraft`,
+  `implementation` for Fabric Loader and Fabric API, and no refmap.
+- Fabric API calls item groups creative tabs here:
+  `CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.NATURAL_BLOCKS)`. Screens:
+  `ScreenEvents.AFTER_INIT`.
+- Fabric API's access wideners open `Blocks.register(key, properties)`, which sets the id; the item
+  helpers in `Items` stay private, so a block item is `new BlockItem(block, new
+  Item.Properties().setId(key).useBlockDescriptionPrefix())`, put in `Item.BY_BLOCK` by
+  `registerBlocks` and registered with `Registry.register`.
+- `WorldCreationUiState.getPresetEditor()` reads vanilla's fixed map, `PresetEditor.EDITORS`; a
+  mixin at its head returns the map generator screen.
+- `-Dfabric-api.gametest` turns the dedicated server into vanilla's gametest server, agrees to the
+  EULA itself, and makes the world `world` from `minecraft:flat` and the datapacks in its folder.

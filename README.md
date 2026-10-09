@@ -8,10 +8,10 @@ desert, lakes, cliffs, forests, rocks and the little plants and decals between t
 iron, copper, coal and stone in Factorio's patch shapes at the surface. The world is flat, one
 Factorio tile to a block, and generated from Factorio's own noise expressions.
 
-| Minecraft | NeoForge |
-|---|---|
-| 26.2 | 26.2.0.59 |
-| 1.21.1 | 21.1.255 |
+| Minecraft | NeoForge | Fabric Loader, Fabric API |
+|---|---|---|
+| 26.2 | 26.2.0.59 | 0.19.5, 0.161.0+26.2 |
+| 1.21.1 | 21.1.255 | 0.19.5, 0.116.17+1.21.1 |
 
 Playing
 -------

@@ -181,7 +181,7 @@ tasks.named('jar', Jar) { duplicatesStrategy = DuplicatesStrategy.EXCLUDE }
 // The gametest world: the world preset under minecraft:flat's name, which the gametest server uses.
 var gameTestPacks = tasks.register('gameTestPacks', Sync) {
     into 'build/gametest-packs/nauvis_world'
-    from 'src/gametest/nauvis_world'
+    from '../common/src/gametest/nauvis_world'
     from('../common/src/generated/server/data/nauvis_terrain/worldgen/world_preset/nauvis.json') {
         into 'data/minecraft/worldgen/world_preset'
         rename { 'flat.json' }

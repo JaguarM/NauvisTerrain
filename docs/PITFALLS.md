@@ -95,6 +95,10 @@ Building
   or "zip END header not found" an empty `.jar`, and the Gradle cache folder is named
   da39a3ee5e6b4b0d3255bfef95601890afd80709, the SHA-1 of nothing. Each build that reaches the
   mirror takes the groups it fails on from Central alone.
+- Loom 1.18 runs only on Gradle 9.7 or newer, and Project Nauvis builds this one inside its own
+  Gradle: the two wrappers move together, or the pack stops building.
+- A `\n` in `fabric.mod.json` reaches the jar as a line break once `expand` has filled the
+  template, which is not JSON; its strings stay on one line.
 
 Versions
 --------
@@ -105,6 +109,9 @@ Versions
 - A 1.21.1 tree turns the ground under its trunk to dirt unless the block refuses. The tile
   blocks refuse (`TerrainBlocks`); a block a pack puts in a tile's place may not, and then the
   sand under a desert tree becomes a patch of dirt.
+- On Fabric 26.2 a block item registered by hand is not its block's item until it is in
+  `Item.BY_BLOCK` (`registerBlocks`): the block has no item to pick, and a creative tab lists
+  nothing for it.
 - 1.21.1's gametest server keeps its world between runs, so the chunks an older build made are
   loaded, not generated, and a test passes on them. `gameTestWorld` makes the world anew each run,
   and only because it is never up to date: the server's writes into its folder are not its own, so

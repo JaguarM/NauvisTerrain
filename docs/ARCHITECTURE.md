@@ -60,8 +60,13 @@ One mod, built for each Minecraft version and loader on what they share:
   chunk generator and its ground, the features, the blocks the world adds, the map generator
   screen, and the data datagen makes. It compiles against vanilla alone.
 - `mc-<version>/neoforge/` is the mod for one version on NeoForge: registration, the client's
-  hooks, data generation and gametests. It compiles core's and common's sources and resources into
-  its own jar, `nauvis_terrain-neoforge-<version>-<mod version>.jar`, so the jar stands alone.
+  hooks, data generation and gametests.
+- `mc-<version>/fabric/` is the mod on Fabric: registration through Fabric API, and a mixin where
+  Fabric has no hook: the map generator screen behind Customize, and on 1.21.1 a tile keeping
+  itself under a growing tree, which NeoForge's `onTreeGrow` does there. Its data is the data
+  NeoForge's datagen makes.
+- Each mod compiles core's and common's sources and resources into its own jar,
+  `nauvis_terrain-<loader>-<version>-<mod version>.jar`, so the jar stands alone.
 - 26.2 is the version the mod is developed on, and Project Nauvis's; a change lands there first,
   then in each other version. `mc-1.21.1` keeps 26.2's files and names, written against 1.21.1
   (`API-1.21.1.md`), so a change carries over file by file.

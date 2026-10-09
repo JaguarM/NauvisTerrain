@@ -35,7 +35,14 @@ The world in Project Nauvis, which nobody has looked at yet: a drill on a surfac
 deep, and the oil fields and offshore pump on Nauvis ground and lakes (`:nauvis:runClient` in
 `../ProjectNauvis`).
 
-### 2. 26.3
+### 2. Fabric in a client
+
+Both Fabric mods boot to the title screen, and 26.2's makes a Nauvis world in its gametest server;
+nobody has played either. The screens (Create World starting on Nauvis, Customize opening the map
+generator screen through the mixin), a walk, and on 1.21.1 a desert tree standing on its sand, as
+the trunk mixin keeps it.
+
+### 3. 26.3
 
 Minecraft 26.3 is out, and NeoForge's 26.3 builds are betas (26.3.0.51-beta on 2026-10-05). Once
 one is a release and Project Nauvis moves to it with its other mods, `mc-26.2` becomes `mc-26.3`:
@@ -48,12 +55,14 @@ How to run everything
 | | |
 |---|---|
 | `./gradlew build` | core's tests and every jar, in `mc-<version>/<loader>/build/libs/` |
-| `gh release create v<mod_version> mc-*/*/build/libs/*.jar` | a release on GitHub, every jar attached, after `mod_version` goes up in `gradle.properties` and `./gradlew clean build` |
+| `gh release create v<mod_version> mc-*/neoforge/build/libs/*.jar mc-*/fabric/build/libs/*.jar` | a release on GitHub, every mod's jar attached, after `mod_version` goes up in `gradle.properties` and `./gradlew clean build` |
 | `./gradlew test` | core's tests: the evaluator against Factorio's values, and seed 123's render |
 | `./gradlew :mc-26.2:neoforge:runClient`, `:mc-1.21.1:neoforge:runClient` | the game with the mod; mods to play beside it go in `mc-<version>/neoforge/run/mods` |
 | `./gradlew :mc-26.2:neoforge:runClientData` / `runServerData` | 26.2's models, textures and language / loot, tags, the biome and the world preset, into `mc-26.2/common/src/generated` |
 | `./gradlew :mc-1.21.1:neoforge:runData` | 1.21.1's, in one run |
 | `./gradlew :mc-26.2:neoforge:runGameTestServer`, `:mc-1.21.1:neoforge:runGameTestServer` | the gametests, in a Nauvis world |
+| `./gradlew :mc-26.2:fabric:runClient`, `:mc-1.21.1:fabric:runClient` | the game on Fabric; mods beside it in `mc-<version>/fabric/run/mods` |
+| `./gradlew :mc-26.2:fabric:runGameTestServer` | Fabric's headless server with vanilla's one test, in a Nauvis world |
 | `python tools/gen_terrain.py --write` | the noise program, and a summary: nodes per root, the operations reached |
 | `python -m unittest tools/test_gen_terrain.py` | the parser and the compiler |
 | `python tools/compare.py [NAME ...] [--tiles X0,Y0,W,H] [--bare] [--autoplace TILE=EXPR]` | Factorio's values against ours, bit for bit, over 2 seeds unless `--seeds`; with `--tiles`, its generated tiles, entities and decoratives against `Terrain`'s, `--bare` without Factorio's enemies and cliffs, `--autoplace` under made-up tile probabilities |

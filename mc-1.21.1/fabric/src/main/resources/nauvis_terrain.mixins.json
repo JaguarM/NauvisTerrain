@@ -1,0 +1,17 @@
+{
+  "required": true,
+  "package": "com.jaguarm.nauvisterrain.fabric.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "TrunkPlacerMixin"
+  ],
+  "client": [
+    "WorldCreationUiStateMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}

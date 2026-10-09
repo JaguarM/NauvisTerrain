@@ -1,12 +1,12 @@
 Nauvis Terrain
 ==============
 
-Factorio 2.0's Nauvis as a NeoForge world type for Minecraft 26.2 and 1.21.1: its ground, water,
-cliffs, trees, rocks, decoratives and ore patches, laid out by Factorio's own noise expressions on a
-flat world, one tile to a block. `core/` is what every Minecraft version shares and `mc-<version>/`
-that version's mods, on what they share in its `common/` (`docs/ARCHITECTURE.md`, versions).
-`docs/NEXT.md` says what to pick up and how to run everything. Read `docs/PITFALLS.md` before
-writing code and `docs/API-<version>.md` before writing against a version's Minecraft API.
+Factorio 2.0's Nauvis as a world type for Minecraft 26.2 and 1.21.1, on NeoForge and Fabric: its
+ground, water, cliffs, trees, rocks, decoratives and ore patches, laid out by Factorio's own noise
+expressions on a flat world, one tile to a block. `core/` is what every Minecraft version shares and
+`mc-<version>/` that version's mods, on what they share in its `common/` (`docs/ARCHITECTURE.md`,
+versions). `docs/NEXT.md` says what to pick up and how to run everything. Read `docs/PITFALLS.md`
+before writing code and `docs/API-<version>.md` before writing against a version's Minecraft API.
 `docs/ARCHITECTURE.md` is the rules the world is built to, `docs/FACTORIO.md` what Factorio's
 install and dump hold about Nauvis, `docs/NOISE.md` Factorio's noise language and how its engine
 computes each built-in, `docs/GAPS.md` what is deliberately missing.
@@ -25,8 +25,8 @@ Non-negotiables
    against disk, and `./gradlew build` runs it.
 3. **Ids are Factorio's.** `grass-1` is `nauvis_terrain:grass_1`, `tree-08-brown` is
    `nauvis_terrain:tree_08_brown`. Ids live in world saves.
-4. **Standalone.** The mod depends on no other mod. Ores are vanilla blocks; uranium, oil and
-   enemies are not placed. A pack changes what it wants through data: the world preset, biome
+4. **Standalone.** The mod depends on no other mod but its loader's own: NeoForge, or Fabric
+   with Fabric API. Ores are vanilla blocks; uranium, oil and enemies are not placed. A pack changes what it wants through data: the world preset, biome
    modifiers, loot tables, tags.
 5. **Verify every Minecraft API against its version's decompiled sources.** Minecraft 26.2
    postdates training, 1.21.1 names much of it otherwise, and guessed names fail silently.

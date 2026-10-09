@@ -1,0 +1,84 @@
+plugins {
+    id 'net.fabricmc.fabric-loom-remap'
+}
+
+// This version's Minecraft, NeoForge and Fabric versions.
+def versions = new Properties()
+file('../versions.properties').withInputStream { versions.load(it) }
+
+version = mod_version
+group = mod_group_id
+
+base {
+    archivesName = "${mod_id}-fabric-${versions.minecraft_version}"
+}
+
+// Mojang ships Java 21 to end users in 1.21.1.
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+repositories {
+    mavenCentral()
+}
+
+// core and this version's common are compiled into this jar from their sources; the project
+// dependencies are there for the IDE.
+configurations {
+    sharedJava {
+        canBeConsumed = false
+    }
+    sharedResources {
+        canBeConsumed = false
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${versions.minecraft_version}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${versions.fabric_loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${versions.fabric_api_version}"
+
+    compileOnly project(':core')
+    compileOnly project(':mc-1.21.1:common')
+    sharedJava project(path: ':core', configuration: 'coreJava')
+    sharedJava project(path: ':mc-1.21.1:common', configuration: 'commonJava')
+    sharedResources project(path: ':core', configuration: 'coreResources')
+    sharedResources project(path: ':mc-1.21.1:common', configuration: 'commonResources')
+}
+
+tasks.named('compileJava', JavaCompile) {
+    source configurations.sharedJava
+    options.encoding = 'UTF-8'
+}
+
+tasks.named('processResources', ProcessResources) {
+    from(configurations.sharedResources) {
+        exclude '**/.cache'
+    }
+    var replaceProperties = [
+            mod_id               : mod_id,
+            mod_name             : mod_name,
+            mod_license          : mod_license,
+            mod_version          : mod_version,
+            minecraft_version    : versions.minecraft_version,
+            fabric_loader_version: versions.fabric_loader_version,
+    ]
+    inputs.properties replaceProperties
+    filesMatching('fabric.mod.json') {
+        expand replaceProperties
+    }
+}
+
+loom {
+    mods {
+        "${mod_id}" {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
+// MIT requires the notice to travel with every copy, and a jar is a copy.
+tasks.named('jar', Jar) {
+    from(rootProject.file('LICENSE.txt')) {
+        into('META-INF')
+    }
+}

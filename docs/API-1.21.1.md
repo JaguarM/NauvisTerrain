@@ -70,3 +70,17 @@ its directory, by the path alone; `{DataVersion: 3955, size: [1, 1, 1], data: []
 palette: []}` is one block of nothing. The server makes its world from the `minecraft:flat` world
 preset with every datapack in `world/datapacks`, keeps that world between runs, and agrees to the
 EULA by itself.
+
+Fabric
+------
+
+- Loom is `net.fabricmc.fabric-loom-remap` with `mappings loom.officialMojangMappings()` and
+  `modImplementation` for Fabric Loader and Fabric API. The jar it remaps to intermediary carries
+  mixins whose targets are rewritten in place (`getPresetEditor` is `method_48731`), so no refmap.
+- Item groups: `ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.NATURAL_BLOCKS)`. Screens:
+  `ScreenEvents.AFTER_INIT`.
+- `Items.registerBlock(block)` is public: the block item, under the block's id, in `Item.BY_BLOCK`.
+- There is no `onTreeGrow`: a mixin at the head of `TrunkPlacer.setDirtAt` keeps
+  `#nauvis_terrain:ground` under a trunk.
+- Fabric's gametest server needs a registered test: vanilla's `GameTestServer.create` refuses an
+  empty list, so 1.21.1's Fabric mod has none.
