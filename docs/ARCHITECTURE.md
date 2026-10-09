@@ -173,11 +173,16 @@ The world
   spruce-like for the conifers (`tree-01`, `tree-02`), oak-like for the broadleaves, its leaves the
   vanilla leaves nearest its colour (cherry for the red ones, dark oak and pale oak for the brown);
   the five dead and dry trees are bare trunks, a forked desert tree and a fallen log.
-- The jar carries a Dynamic Trees treepack (`trees/nauvis_terrain/`, generated): every ground tile
-  a soil, dirt-like or sand-like, with its rooty look under the name Dynamic Trees gives it
-  (`dynamictrees:rooty_nauvis_grass_1`, its namespace for a mod without its registry handler); a canceller for Nauvis's living trees; and
-  Dynamic Trees' own grown in their place, in the mix of species Factorio's trees come to over four
-  seeds. With Dynamic Trees the trees are spaced by its rules; without it the pack is inert.
+- With Dynamic Trees installed, its trees stand where Factorio's living trees do. The jar's
+  treepack (`trees/nauvis_terrain/`, generated) makes every ground tile a soil they root in, as
+  Factorio's trees stand on any (sand and red desert sand-like too), with its rooty look under the
+  name Dynamic Trees gives it (`dynamictrees:rooty_nauvis_grass_1`, its namespace for a mod without
+  its registry handler), and cancels Nauvis's vanilla trees. `nauvis_terrain:dynamic_trees` then
+  grows the species nearest each of Factorio's trees on its spot, the spots thinned to five blocks
+  apart so Dynamic Trees' crowns have room; the thinning keeps a spot that outranks, by a hash of
+  its place, every other that close, which chunks on both sides of a border agree on. The mod
+  reaches Dynamic Trees by reflection, so it neither builds against it nor needs it; without it the
+  treepack and the feature do nothing.
 - A rock is a mound of stone over the tiles its collision box covers (`nauvis_terrain:boulder`),
   stone and coal ore half and half in the huge rock, as its yield is; the big sand rock is
   sandstone. A plant decorative is the nearest vanilla plant (short and tall grass, fern, bush,

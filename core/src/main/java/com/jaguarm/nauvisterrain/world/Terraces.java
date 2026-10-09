@@ -8,8 +8,10 @@ import com.jaguarm.nauvisterrain.noise.Terrain;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.ToIntFunction;
 
@@ -53,6 +55,10 @@ public final class Terraces {
 
     /** The block a tree, rock or decorative stands in: the one above its tile's top. */
     public record Spot(int x, int y, int z) {
+    }
+
+    /** A thing Factorio places, by its Factorio name, and the block it stands in. */
+    public record Standing(String name, Spot spot) {
     }
 
     public final Terrain terrain;
@@ -158,6 +164,47 @@ public final class Terraces {
             placed.put(key, all);
         }
         return all.getOrDefault(name, List.of());
+    }
+
+    /**
+     * The trees, rocks or decoratives of the given names in the Minecraft chunk at `chunkX`, `chunkZ`,
+     * thinned so that no two kept stand closer than `spacing` blocks: a spot stays where it outranks
+     * every other that close, by a hash of its place, which every chunk around it sees alike.
+     */
+    public List<Standing> thinned(Set<String> names, int chunkX, int chunkZ, int spacing) {
+        Map<Spot, String> near = new LinkedHashMap<>();
+        for (int cx = chunkX - 1; cx <= chunkX + 1; cx++) {
+            for (int cz = chunkZ - 1; cz <= chunkZ + 1; cz++) {
+                for (String name : names) {
+                    for (Spot spot : placed(name, cx, cz)) {
+                        near.putIfAbsent(spot, name);
+                    }
+                }
+            }
+        }
+        List<Standing> kept = new ArrayList<>();
+        near.forEach((spot, name) -> {
+            if (Math.floorDiv(spot.x, 16) == chunkX && Math.floorDiv(spot.z, 16) == chunkZ && outranks(spot, near.keySet(), spacing)) {
+                kept.add(new Standing(name, spot));
+            }
+        });
+        return kept;
+    }
+
+    private boolean outranks(Spot spot, Set<Spot> near, int spacing) {
+        for (Spot other : near) {
+            int dx = other.x - spot.x;
+            int dz = other.z - spot.z;
+            if (dx * dx + dz * dz < spacing * spacing && rank(other) > rank(spot)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** A spot's rank: a hash of its place. */
+    private long rank(Spot spot) {
+        return Hash.of(mapSeed + 3, spot.x, spot.z, 0);
     }
 
     private Map<String, List<Spot>> placements(int x0, int z0) {

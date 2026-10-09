@@ -26,8 +26,8 @@ Each a decision. If something looks broken, look here before treating it as a bu
   decals around a base, and the trees and decoratives a base keeps off.
 - Trees, plants and small rocks are vanilla's nearest, not Factorio's own: a leaf colour, a plant
   shape, a block of stone for a pebble. Decals are round. *Kept.*
-- With Dynamic Trees, its trees replace Factorio's and are spaced by its rules, deserts bare only
-  because its trees do not root in sand. *Kept.*
+- With Dynamic Trees, its trees stand on Factorio's tree spots thinned to five blocks apart, so a
+  forest is sparser than Factorio's. *Kept.*
 - Fish are cod that spawn in water, not one fish on a hundredth of the water tiles.
 - A tree, rock or plant yields what its vanilla blocks yield, not Factorio's wood and stone counts.
 - Under the ground is Minecraft's: stone, deepslate, bedrock and vanilla's ores other than iron,

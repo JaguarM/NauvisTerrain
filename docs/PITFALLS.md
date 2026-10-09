@@ -30,6 +30,10 @@ Other mods
   nothing in `runClient` without it.
 - Dynamic Trees cancels a tree only inside a `minecraft:random_selector`; a bare `minecraft:tree`
   feature in a biome's list is left standing.
+- Installed, Dynamic Trees cancels Nauvis's vanilla trees whatever else happens, so a Dynamic Trees
+  whose API the reflection does not find would leave Nauvis treeless; `DynamicTrees` fails loudly.
+- Its species root only in soils whose `acceptable_soils` they take. A tile only sand-like grows
+  none of its trees, and every desert tree of Factorio's disappears.
 - Distant Horizons 3.3.3 crashes a gametest server, taking it for a dedicated one; the gametest
   run has its own `run/gametest`, without the mods dropped into `run/mods`.
 - NeoForge 26.2 no longer reads `neoforge.enabledGameTestNamespaces`: a gametest server runs every

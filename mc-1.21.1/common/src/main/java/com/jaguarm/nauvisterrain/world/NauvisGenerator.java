@@ -32,6 +32,7 @@ import net.minecraft.world.level.levelgen.structure.StructureSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -88,6 +89,11 @@ public final class NauvisGenerator extends ChunkGenerator {
     /** Where Factorio places a tree, rock or decorative in a chunk: on top of each tile it stands on. */
     public List<BlockPos> placed(String name, ChunkPos chunk) {
         return ground().placed(name, chunk);
+    }
+
+    /** Where Factorio's things of the given names stand in a chunk, thinned to `spacing` blocks apart. */
+    public List<Terraces.Standing> thinned(Set<String> names, ChunkPos chunk, int spacing) {
+        return ground().terraces.thinned(names, chunk.x, chunk.z, spacing);
     }
 
     @Override

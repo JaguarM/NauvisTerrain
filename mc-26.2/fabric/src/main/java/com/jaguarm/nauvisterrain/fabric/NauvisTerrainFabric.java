@@ -2,6 +2,7 @@ package com.jaguarm.nauvisterrain.fabric;
 
 import com.jaguarm.nauvisterrain.world.AutoplacePlacement;
 import com.jaguarm.nauvisterrain.world.BoulderFeature;
+import com.jaguarm.nauvisterrain.world.DynamicTreesFeature;
 import com.jaguarm.nauvisterrain.world.Nauvis;
 import com.jaguarm.nauvisterrain.world.NauvisGenerator;
 import com.jaguarm.nauvisterrain.world.TerrainBlocks;
@@ -26,6 +27,7 @@ public final class NauvisTerrainFabric implements ModInitializer {
         Registry.register(BuiltInRegistries.CHUNK_GENERATOR, id("nauvis"), NauvisGenerator.CODEC);
         Registry.register(BuiltInRegistries.PLACEMENT_MODIFIER_TYPE, id("autoplace"), AutoplacePlacement.TYPE);
         Registry.register(BuiltInRegistries.FEATURE, id("boulder"), new BoulderFeature());
+        Registry.register(BuiltInRegistries.FEATURE, id("dynamic_trees"), new DynamicTreesFeature());
         TerrainBlocks.register((path, properties) -> {
             Block block = Blocks.register(ResourceKey.create(Registries.BLOCK, id(path)), properties.apply(BlockBehaviour.Properties.of()));
             ResourceKey<Item> itemKey = ResourceKey.create(Registries.ITEM, id(path));

@@ -97,9 +97,16 @@ final class Autoplace {
         return p.kind().equals("decorative") && !p.decal();
     }
 
-    /** The Dynamic Trees species that stands for a tree, or null for a bare one, which it leaves alone. */
-    static String species(Prototype p) {
-        return require(TREES, p).species;
+    /** Dynamic Trees' trees where Factorio's stand, which grow only with Dynamic Trees installed. */
+    static final String DYNAMIC_TREES = Nauvis.MOD_ID + ":dynamic_trees";
+
+    /** The biome's vegetation: decals, rocks and trees, Dynamic Trees' trees, then the plants. */
+    static List<String> features() {
+        List<String> out = new ArrayList<>();
+        inOrder().stream().filter(p -> !plant(p)).forEach(p -> out.add(id(p)));
+        out.add(DYNAMIC_TREES);
+        inOrder().stream().filter(Autoplace::plant).forEach(p -> out.add(id(p)));
+        return out;
     }
 
     static String id(Prototype p) {
@@ -131,6 +138,19 @@ final class Autoplace {
             placed.add("placement", placement);
             files.put(Nauvis.MOD_ID + "/worldgen/placed_feature/" + path, placed);
         }
+        JsonObject species = new JsonObject();
+        for (Prototype p : inOrder()) {
+            if (p.type().equals("tree") && require(TREES, p).species != null) {
+                species.addProperty(p.name(), "dynamictrees:" + require(TREES, p).species);
+            }
+        }
+        JsonObject config = new JsonObject();
+        config.add("species", species);
+        files.put(Nauvis.MOD_ID + "/worldgen/configured_feature/dynamic_trees.json", feature(DYNAMIC_TREES, config));
+        JsonObject placed = new JsonObject();
+        placed.addProperty("feature", DYNAMIC_TREES);
+        placed.add("placement", new JsonArray());
+        files.put(Nauvis.MOD_ID + "/worldgen/placed_feature/dynamic_trees.json", placed);
         return files;
     }
 

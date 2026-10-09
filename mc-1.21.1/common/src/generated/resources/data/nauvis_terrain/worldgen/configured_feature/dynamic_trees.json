@@ -1,0 +1,22 @@
+{
+  "type": "nauvis_terrain:dynamic_trees",
+  "config": {
+    "species": {
+      "tree-01": "dynamictrees:spruce",
+      "tree-02": "dynamictrees:spruce",
+      "tree-02-red": "dynamictrees:cherry",
+      "tree-03": "dynamictrees:oak",
+      "tree-04": "dynamictrees:oak",
+      "tree-05": "dynamictrees:jungle",
+      "tree-06": "dynamictrees:acacia",
+      "tree-06-brown": "dynamictrees:acacia",
+      "tree-07": "dynamictrees:oak",
+      "tree-08": "dynamictrees:birch",
+      "tree-08-brown": "dynamictrees:dark_oak",
+      "tree-08-red": "dynamictrees:cherry",
+      "tree-09": "dynamictrees:dark_oak",
+      "tree-09-brown": "dynamictrees:dark_oak",
+      "tree-09-red": "dynamictrees:cherry"
+    }
+  }
+}

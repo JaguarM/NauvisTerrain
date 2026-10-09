@@ -3,6 +3,7 @@ package com.jaguarm.nauvisterrain;
 import com.jaguarm.nauvisterrain.test.TerrainGameTests;
 import com.jaguarm.nauvisterrain.world.AutoplacePlacement;
 import com.jaguarm.nauvisterrain.world.BoulderFeature;
+import com.jaguarm.nauvisterrain.world.DynamicTreesFeature;
 import com.jaguarm.nauvisterrain.world.Nauvis;
 import com.jaguarm.nauvisterrain.world.NauvisGenerator;
 import com.jaguarm.nauvisterrain.world.TerrainBlocks;
@@ -37,6 +38,7 @@ public final class NauvisTerrain {
         CHUNK_GENERATORS.register("nauvis", () -> NauvisGenerator.CODEC);
         PLACEMENTS.register("autoplace", () -> AutoplacePlacement.TYPE);
         FEATURES.register("boulder", BoulderFeature::new);
+        FEATURES.register("dynamic_trees", DynamicTreesFeature::new);
         TerrainBlocks.register(new TerrainBlocks.Registrar() {
             @Override
             public Holder<Block> tile(String path, BlockBehaviour.Properties properties) {

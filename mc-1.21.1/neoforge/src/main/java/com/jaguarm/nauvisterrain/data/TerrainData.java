@@ -236,7 +236,7 @@ public final class TerrainData {
                     UNDERGROUND_ORES.forEach(ore -> inStep.add("minecraft:" + ore));
                 }
                 if (step == 9) {
-                    Autoplace.inOrder().forEach(p -> inStep.add(Autoplace.id(p)));
+                    Autoplace.features().forEach(inStep::add);
                 }
                 features.add(inStep);
             }
